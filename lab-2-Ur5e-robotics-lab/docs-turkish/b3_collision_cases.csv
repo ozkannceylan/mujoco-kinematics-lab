@@ -1,0 +1,4 @@
+case,collision,score,limit_margin
+ready,False,-0.130859,0.343750
+folded_wrist,True,0.000614,0.250000
+shoulder_over_base,False,-0.010239,0.253310

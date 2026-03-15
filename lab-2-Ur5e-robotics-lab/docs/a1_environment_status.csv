@@ -1,0 +1,13 @@
+section,name,status,notes
+dependency,numpy,available,optional
+dependency,mujoco,available,optional
+dependency,pinocchio,missing,optional
+dependency,matplotlib,available,optional
+dependency,rclpy,available,optional
+asset,mjcf_scene,available,models/lab-2-Ur5e-robotics-lab/scene.xml
+asset,urdf_model,available,models/lab-2-Ur5e-robotics-lab/ur5e.urdf
+sim_wrapper,backend,mujoco,
+sim_wrapper,steps,100,
+sim_wrapper,time_s,0.2000,
+sim_wrapper,q_dimension,6,
+sim_wrapper,q_norm,0.490076,

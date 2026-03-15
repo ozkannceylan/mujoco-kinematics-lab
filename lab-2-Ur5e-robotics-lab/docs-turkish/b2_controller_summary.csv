@@ -1,0 +1,5 @@
+controller,rms_joint_error,rms_ee_error,peak_torque_norm
+pd_gravity,0.07341545,0.10779278,45.24161614
+computed_torque,0.00273727,0.00358264,37.45355424
+task_impedance,0.39854521,0.12395567,36.57588213
+osc,0.42561321,0.04903771,39.09672603

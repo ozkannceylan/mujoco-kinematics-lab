@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UR5e URDF for Pinocchio.
+  Kinematics and inertials extracted from MuJoCo Menagerie ur5e.xml to ensure
+  cross-validation agreement between Pinocchio and MuJoCo.
+  Joint origins follow the same convention as the UR5 URDF in example-robot-data.
+-->
+<robot name="ur5e">
+
+  <!-- ===== Links ===== -->
+
+  <!-- World frame anchor -->
+  <link name="world"/>
+
+  <link name="base_link">
+    <inertial>
+      <mass value="4.0"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.00443333156" ixy="0.0" ixz="0.0"
+               iyy="0.00443333156" iyz="0.0" izz="0.0072"/>
+    </inertial>
+    <collision>
+      <geometry><cylinder radius="0.06" length="0.12"/></geometry>
+      <origin rpy="0 0 0" xyz="0 0 0.06"/>
+    </collision>
+  </link>
+
+  <link name="shoulder_link">
+    <inertial>
+      <mass value="3.7"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.0102675" ixy="0.0" ixz="0.0"
+               iyy="0.0102675" iyz="0.0" izz="0.00666"/>
+    </inertial>
+    <collision>
+      <geometry><cylinder radius="0.06" length="0.12"/></geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </collision>
+  </link>
+
+  <link name="upper_arm_link">
+    <inertial>
+      <mass value="8.393"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.2125"/>
+      <inertia ixx="0.133886" ixy="0.0" ixz="0.0"
+               iyy="0.133886" iyz="0.0" izz="0.0151074"/>
+    </inertial>
+    <collision>
+      <geometry><cylinder radius="0.05" length="0.425"/></geometry>
+      <origin rpy="0 0 0" xyz="0 0 0.2125"/>
+    </collision>
+  </link>
+
+  <link name="forearm_link">
+    <inertial>
+      <mass value="2.275"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.196"/>
+      <inertia ixx="0.0311796" ixy="0.0" ixz="0.0"
+               iyy="0.0311796" iyz="0.0" izz="0.004095"/>
+    </inertial>
+    <collision>
+      <geometry><cylinder radius="0.038" length="0.392"/></geometry>
+      <origin rpy="0 0 0" xyz="0 0 0.196"/>
+    </collision>
+  </link>
+
+  <link name="wrist_1_link">
+    <inertial>
+      <mass value="1.219"/>
+      <origin rpy="0 0 0" xyz="0.0 0.127 0.0"/>
+      <inertia ixx="0.0025599" ixy="0.0" ixz="0.0"
+               iyy="0.0025599" iyz="0.0" izz="0.0021942"/>
+    </inertial>
+    <collision>
+      <geometry><cylinder radius="0.04" length="0.1"/></geometry>
+      <origin rpy="1.5708 0 0" xyz="0 0.05 0"/>
+    </collision>
+  </link>
+
+  <link name="wrist_2_link">
+    <inertial>
+      <mass value="1.219"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.1"/>
+      <inertia ixx="0.0025599" ixy="0.0" ixz="0.0"
+               iyy="0.0025599" iyz="0.0" izz="0.0021942"/>
+    </inertial>
+    <collision>
+      <geometry><cylinder radius="0.04" length="0.1"/></geometry>
+      <origin rpy="0 0 0" xyz="0 0 0.05"/>
+    </collision>
+  </link>
+
+  <link name="wrist_3_link">
+    <inertial>
+      <mass value="0.1889"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0771683 0.0"/>
+      <inertia ixx="0.000132134" ixy="0.0" ixz="0.0"
+               iyy="9.90863e-05" iyz="0.0" izz="9.90863e-05"/>
+    </inertial>
+    <collision>
+      <geometry><cylinder radius="0.04" length="0.04"/></geometry>
+      <origin rpy="1.5708 0 0" xyz="0 0.04 0"/>
+    </collision>
+  </link>
+
+  <link name="ee_link">
+    <inertial>
+      <mass value="0.001"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1e-9" ixy="0" ixz="0" iyy="1e-9" iyz="0" izz="1e-9"/>
+    </inertial>
+  </link>
+
+  <!-- ===== Joints ===== -->
+
+  <!-- Fixed joint: world → base_link with 180° z-rotation to match
+       MuJoCo Menagerie convention (base body quat="0 0 0 -1") -->
+  <joint name="world_joint" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin rpy="0 0 3.14159265358979" xyz="0 0 0"/>
+  </joint>
+
+  <!--
+    The kinematic chain follows the same convention as the official UR URDF:
+    - shoulder_pan rotates about z
+    - shoulder_lift, elbow, wrist_1, wrist_3 rotate about y (after frame rotations)
+    - wrist_2 rotates about z
+    Dimensions from MuJoCo Menagerie UR5e (CAD-based measurements).
+  -->
+
+  <joint name="shoulder_pan_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="shoulder_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0.163"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="150.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14"/>
+  </joint>
+
+  <joint name="shoulder_lift_joint" type="revolute">
+    <parent link="shoulder_link"/>
+    <child link="upper_arm_link"/>
+    <origin rpy="0 1.5707963267948966 0" xyz="0 0.138 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="150.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14"/>
+  </joint>
+
+  <joint name="elbow_joint" type="revolute">
+    <parent link="upper_arm_link"/>
+    <child link="forearm_link"/>
+    <origin rpy="0 0 0" xyz="0 -0.131 0.425"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="150.0" lower="-3.14159265359" upper="3.14159265359" velocity="3.14"/>
+  </joint>
+
+  <joint name="wrist_1_joint" type="revolute">
+    <parent link="forearm_link"/>
+    <child link="wrist_1_link"/>
+    <origin rpy="0 1.5707963267948966 0" xyz="0 0 0.392"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="28.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28"/>
+  </joint>
+
+  <joint name="wrist_2_joint" type="revolute">
+    <parent link="wrist_1_link"/>
+    <child link="wrist_2_link"/>
+    <origin rpy="0 0 0" xyz="0 0.127 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="28.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28"/>
+  </joint>
+
+  <joint name="wrist_3_joint" type="revolute">
+    <parent link="wrist_2_link"/>
+    <child link="wrist_3_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="28.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28"/>
+  </joint>
+
+  <joint name="ee_fixed_joint" type="fixed">
+    <parent link="wrist_3_link"/>
+    <child link="ee_link"/>
+    <origin rpy="-1.5707963267948966 0 0" xyz="0 0.1 0"/>
+  </joint>
+
+</robot>

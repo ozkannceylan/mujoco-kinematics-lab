@@ -1,0 +1,4 @@
+case,manipulability,det_j
+wrist_singularity,0.14420603,0.00000000
+elbow_singularity,0.03251773,0.00000000
+shoulder_singularity,0.02823867,0.00000000

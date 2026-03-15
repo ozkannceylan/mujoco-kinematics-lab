@@ -1,0 +1,5 @@
+demo,rms_ee_error,peak_torque_norm,min_manipulability,collision_samples
+pick_place,0.16795088,192.19323133,0.02049464,0
+multi_waypoint,0.24205499,222.65062562,0.01777964,0
+circle_tracking,0.18585654,267.89175139,0.03858875,0
+singularity_stress,0.00369054,54.70625160,0.14342848,0

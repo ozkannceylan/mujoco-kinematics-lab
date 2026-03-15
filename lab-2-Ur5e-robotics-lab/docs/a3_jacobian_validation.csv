@@ -1,0 +1,4 @@
+config,frobenius_err,manipulability,det_j
+ready,0.00000000,0.14342848,-0.09846564
+elbow_open,0.00000000,0.17118995,-0.06485752
+wrist_flip,0.00000000,0.14031284,-0.00171715

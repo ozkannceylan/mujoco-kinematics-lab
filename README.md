@@ -1,152 +1,126 @@
-# mujoco-kinematics-lab
+# MuJoCo Kinematics Lab
 
-A hands-on robotics lab for rebuilding robotics fundamentals in simulation with **MuJoCo**.
+A hands-on robotics lab series for rebuilding robotics fundamentals in simulation with **MuJoCo**. Each lab focuses on a different robot, progressing from simple planar arms to industrial 6-DOF manipulators.
 
-This repository starts from first principles on a simple **2-link planar robot arm** and builds up, step by step, to a complete control pipeline: **forward kinematics, Jacobians, inverse kinematics, dynamics, trajectory generation, PD control, and computed torque control**.
+The labs build up the same core pipeline step by step: **forward kinematics, Jacobians, inverse kinematics, dynamics, trajectory generation, control, and a final integration demo**.
 
-The final integrated task is a precise **Cartesian square drawing** demo.
+---
 
-## Showcase
+## Labs
 
-![Square Drawing Demo](media/c1_draw_square.gif)
+### Lab 1: 2-Link Planar Arm
 
-> The final demo draws a **10 cm Cartesian square** in MuJoCo using **computed torque control**, **quintic trajectory generation**, **analytic inverse kinematics**, and **Jacobian-based velocity mapping**.
+A minimal 2-DOF planar robot arm. Everything is built from first principles — the math stays visible and every concept maps directly to code.
 
-To regenerate the video:
+**Final demo**: Draws a precise **10 cm Cartesian square** with computed torque control.
 
-```bash
-python3 src/c1_record_video.py
+![Lab 1 — Square Drawing](lab-1-2link-arm/media/c1_draw_square.gif)
+
+| Metric | Value |
+|---|---|
+| Square tracking RMS error | 0.008 mm |
+| Max torque | 0.076 Nm |
+| IK success rate | 100% |
+
+[Go to Lab 1](lab-1-2link-arm/)
+
+---
+
+### Lab 2: UR5e Industrial Robot Arm
+
+A full 6-DOF industrial manipulator using the **UR5e** model from MuJoCo Menagerie, with **Pinocchio** for analytical computations and **MuJoCo** for physics simulation.
+
+**Final demo**: Draws a **3D cube** (12 edges) with sub-millimeter precision using gravity compensation + velocity feedforward.
+
+![Lab 2 — Cube Drawing](lab-2-Ur5e-robotics-lab/media/c3_draw_cube.gif)
+
+| Metric | Value |
+|---|---|
+| Cube tracking RMS error | 0.088 mm |
+| Max torque | 16.50 Nm |
+| IK waypoint error | < 0.1 mm |
+
+[Go to Lab 2](lab-2-Ur5e-robotics-lab/)
+
+---
+
+## Repository Structure
+
+```
+mujoco-kinematics-lab/
+├── lab-1-2link-arm/              # Lab 1: 2-Link Planar Arm
+│   ├── src/                      #   Source scripts (A1–C1)
+│   ├── models/                   #   MuJoCo XML models
+│   ├── docs/                     #   English documentation
+│   ├── docs-turkish/             #   Turkish documentation
+│   ├── media/                    #   Videos and GIFs
+│   ├── tests/                    #   Unit tests
+│   └── README.md                 #   Lab overview
+│
+├── lab-2-Ur5e-robotics-lab/      # Lab 2: UR5e 6-DOF Arm
+│   ├── src/                      #   Source scripts (A1–C3)
+│   ├── models/                   #   URDF, MJCF, Menagerie files
+│   ├── docs/                     #   English documentation
+│   ├── docs-turkish/             #   Turkish documentation
+│   ├── media/                    #   Videos and GIFs
+│   ├── tests/                    #   Unit tests
+│   └── README.md                 #   Lab overview
+│
+├── CLAUDE.md                     # Project instructions for AI assistant
+└── README.md                     # This file
 ```
 
----
-
-## Why this repo exists
-
-This project was built as a compact robotics fundamentals lab:
-
-* to revisit core manipulator concepts from scratch,
-* to connect theory directly to simulation,
-* and to turn isolated topics into a single working control stack.
-
-Instead of jumping straight into complex robots, everything is developed on a minimal system where the math stays visible.
-
----
-
-## What is implemented
-
-### A — Foundations
-
-| Module | Topic                                              | Script                         |
-| ------ | -------------------------------------------------- | ------------------------------ |
-| A1     | MuJoCo setup and interactive demo                  | `src/a1_mujoco_setup.py`       |
-| A2     | Forward kinematics and workspace analysis          | `src/a2_forward_kinematics.py` |
-| A3     | Analytic Jacobian and singularity analysis         | `src/a3_jacobian.py`           |
-| A4     | Inverse kinematics (analytic, pseudo-inverse, DLS) | `src/a4_inverse_kinematics.py` |
-| A5     | Dynamics basics (`M`, `C`, `g` from MuJoCo)        | `src/a5_dynamics_basics.py`    |
-
-### B — Control and Trajectory
-
-| Module | Topic                                                 | Script                            |
-| ------ | ----------------------------------------------------- | --------------------------------- |
-| B1     | Cubic and quintic trajectory generation               | `src/b1_trajectory_generation.py` |
-| B2     | PD control and gravity compensation                   | `src/b2_pd_controller.py`         |
-| B3     | Full pipeline demos (pick-and-place, circle tracking) | `src/b3_full_pipeline.py`         |
-
-### C — Integration
-
-| Module | Topic                                                 | Script                  |
-| ------ | ----------------------------------------------------- | ----------------------- |
-| C1     | Cartesian square drawing with computed torque control | `src/c1_draw_square.py` |
+Each lab is self-contained with its own source code, models, documentation, tests, and media. New labs follow the same structure.
 
 ---
 
 ## Quick Start
 
-### 1. Install dependencies
+### Install dependencies
 
 ```bash
-pip install mujoco numpy imageio[ffmpeg]
+pip install mujoco numpy pinocchio imageio[ffmpeg] matplotlib
 ```
 
-### 2. Run the final demo
+### Run a lab demo
 
 ```bash
-python3 src/c1_draw_square.py
-```
+# Lab 1: 2-link square drawing
+python3 lab-1-2link-arm/src/c1_draw_square.py
 
-This opens the MuJoCo viewer and runs the square drawing task.
-
-### 3. Record the demo video
-
-```bash
-python3 src/c1_record_video.py
-```
-
-This generates the showcase video headlessly.
-
----
-
-## Project Structure
-
-```text
-models/   MuJoCo XML robot models
-src/      Python scripts for each module and demo
-docs/     Notes and explanations for each topic
-media/    Recorded videos and visual outputs
+# Lab 2: UR5e cube drawing
+python3 lab-2-Ur5e-robotics-lab/src/c3_draw_cube.py
 ```
 
 ---
 
-## Key Results
+## Topics Covered
 
-| Metric                              | Value    |
-| ----------------------------------- | -------- |
-| Square tracking RMS error           | 0.008 mm |
-| Square tracking max error           | 0.013 mm |
-| Max torque used                     | 0.076 Nm |
-| Analytic vs. numeric Jacobian error | < 1e-10  |
-| IK success rate (20 random targets) | 100%     |
+Both labs cover the same fundamental topics at different scales:
+
+| Topic | Lab 1 (2-DOF) | Lab 2 (6-DOF) |
+|---|---|---|
+| Forward Kinematics | Analytic 2-link FK | DH + Pinocchio + MuJoCo cross-validation |
+| Jacobian | 2x2 analytic | Geometric, Pinocchio, numerical + singularity analysis |
+| Inverse Kinematics | Analytic + pseudo-inverse + DLS | Pseudo-inverse + adaptive DLS |
+| Dynamics | M, C, g from MuJoCo | Pinocchio RNEA, ABA, CRBA + cross-validation |
+| Trajectory | Cubic, quintic | Cubic, quintic, trapezoidal, min-jerk, multi-segment |
+| Control | PD + gravity compensation | PD+g, computed torque, task-space impedance, OSC |
+| Integration | Square drawing | Pick-and-place pipeline + 3D cube drawing |
+
+---
+
+## Core Architecture (Lab 2)
+
+```
+Pinocchio = analytical brain (FK, Jacobian, M, C, g, IK)
+MuJoCo   = physics simulator (step, render, contact, sensor)
+```
+
+Both engines are cross-validated against each other at every stage to ensure correctness.
 
 ---
 
 ## Documentation
 
-Detailed notes for each module are available in [`docs/`](docs/):
-
-* [MuJoCo Basics](docs/a1_mujoco_basics.md)
-* [Forward Kinematics](docs/a2_forward_kinematics.md)
-* [Jacobian](docs/a3_jacobian.md)
-* [Inverse Kinematics](docs/a4_inverse_kinematics.md)
-* [Dynamics](docs/a5_dynamics.md)
-* [Trajectory Generation](docs/b1_trajectory_generation.md)
-* [PD Control](docs/b2_pd_controller.md)
-* [Full Pipeline](docs/b3_full_pipeline.md)
-* [Draw Square (C1)](docs/c1_draw_square.md)
-
----
-
-## Core Takeaways
-
-This repository is intentionally small in scope, but complete in structure.
-
-It shows how to go from:
-
-* robot model definition,
-* to kinematics,
-* to inverse kinematics,
-* to trajectory generation,
-* to feedback control,
-* to a final task-space execution demo.
-
-The same reasoning pattern scales to larger manipulators and humanoid control pipelines.
-
----
-
-## Possible Next Steps
-
-A natural continuation of this project would be:
-
-* adding a 3-link or 6-DoF manipulator,
-* comparing Jacobian transpose vs. operational-space control,
-* adding contact-rich tasks,
-* or bridging the simulation to ROS 2.
+Each lab has full English and Turkish documentation in its `docs/` and `docs-turkish/` folders. See the individual lab READMEs for links.
