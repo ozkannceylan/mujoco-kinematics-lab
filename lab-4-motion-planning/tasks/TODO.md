@@ -14,11 +14,11 @@
 - [x] Step 2.4: Write Phase 2 tests — DONE (2026-03-15)
 
 ## Phase 3: Trajectory Post-Processing & Execution
-- [ ] Step 3.1: Implement path shortcutting
-- [ ] Step 3.2: Integrate TOPP-RA for time-optimal parameterization
-- [ ] Step 3.3: Execute trajectory on torque-controlled UR5e
-- [ ] Step 3.4: Compare raw vs smoothed execution
-- [ ] Step 3.5: Write Phase 3 tests
+- [x] Step 3.1: Implement path shortcutting — DONE (2026-03-15)
+- [x] Step 3.2: Integrate TOPP-RA for time-optimal parameterization — DONE (2026-03-15)
+- [x] Step 3.3: Execute trajectory on torque-controlled UR5e — DONE (2026-03-15)
+- [x] Step 3.4: Compare raw vs smoothed execution — DONE (2026-03-15)
+- [x] Step 3.5: Write Phase 3 tests — DONE (2026-03-15)
 
 ## Phase 4: Capstone & Documentation
 - [ ] Step 4.1: Design capstone cluttered scene
@@ -29,7 +29,7 @@
 - [ ] Step 4.6: Write README.md
 
 ## Current Focus
-> Step 3.1: Implement path shortcutting
+> Step 4.1: Design capstone cluttered scene
 
 ## Blockers
 > None
