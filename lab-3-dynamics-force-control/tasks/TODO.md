@@ -1,0 +1,33 @@
+# Lab 3: TODO
+
+## Phase 1: Dynamics Fundamentals
+- [ ] Step 1.1: Create torque-mode MJCF scene
+- [ ] Step 1.2: Create common module (`lab3_common.py`)
+- [ ] Step 1.3: Compute and visualize M(q), C(q,q̇), g(q)
+- [ ] Step 1.4: Implement gravity compensation controller
+- [ ] Step 1.5: Write Phase 1 tests
+
+## Phase 2: Cartesian Impedance Controller
+- [ ] Step 2.1: Implement task-space impedance controller
+- [ ] Step 2.2: Add orientation impedance
+- [ ] Step 2.3: Tunable compliance demo
+- [ ] Step 2.4: Write Phase 2 tests
+
+## Phase 3: Force Control & Contact
+- [ ] Step 3.1: Add contact surface to scene
+- [ ] Step 3.2: Implement hybrid position-force controller
+- [ ] Step 3.3: Capstone — constant-force line tracing
+- [ ] Step 3.4: Write Phase 3 tests
+
+## Phase 4: Documentation & Blog
+- [ ] Step 4.1: Write English documentation
+- [ ] Step 4.2: Write Turkish documentation
+- [ ] Step 4.3: Write blog post
+- [ ] Step 4.4: Record capstone demo
+- [ ] Step 4.5: Write README.md
+
+## Current Focus
+> Step 1.1: Create torque-mode MJCF scene
+
+## Blockers
+> None
