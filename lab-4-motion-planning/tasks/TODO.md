@@ -8,10 +8,10 @@
 - [x] Step 1.5: Write Phase 1 tests — DONE (2026-03-15)
 
 ## Phase 2: RRT / RRT* Implementation
-- [ ] Step 2.1: Implement basic RRT planner
-- [ ] Step 2.2: Extend to RRT* with rewiring
-- [ ] Step 2.3: Visualize planned paths
-- [ ] Step 2.4: Write Phase 2 tests
+- [x] Step 2.1: Implement basic RRT planner — DONE (2026-03-15)
+- [x] Step 2.2: Extend to RRT* with rewiring — DONE (2026-03-15)
+- [x] Step 2.3: Visualize planned paths — DONE (2026-03-15)
+- [x] Step 2.4: Write Phase 2 tests — DONE (2026-03-15)
 
 ## Phase 3: Trajectory Post-Processing & Execution
 - [ ] Step 3.1: Implement path shortcutting
@@ -29,7 +29,7 @@
 - [ ] Step 4.6: Write README.md
 
 ## Current Focus
-> Step 2.1: Implement basic RRT planner
+> Step 3.1: Implement path shortcutting
 
 ## Blockers
 > None
