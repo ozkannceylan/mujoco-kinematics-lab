@@ -1,0 +1,131 @@
+<mujoco model="ur5e_lab5_gripper">
+  <!--
+    Lab 5: UR5e with custom parallel-jaw gripper.
+
+    Arm joints (0-5): torque-controlled motors (same as Lab 3).
+    Gripper joint (6): position-controlled, left_finger_joint.
+      Equality constraint mirrors left -> right finger symmetrically.
+
+    Coordinate convention:
+      - tool0 local Z = approach direction (world -Z when arm points down)
+      - Fingers slide along tool0 local Y (world Y at Q_HOME)
+      - ctrl[6] = 0.0  -> closed (fingers grip)
+      - ctrl[6] = 0.030 -> open (fingers spread 60mm gap)
+  -->
+
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.001" gravity="0 0 -9.81" integrator="RK4"/>
+
+  <default>
+    <joint damping="1.0" armature="0.01" limited="true"/>
+    <geom rgba="0.33 0.47 0.58 1" density="800" contype="1" conaffinity="1"/>
+    <motor ctrllimited="true" ctrlrange="-180 180"/>
+  </default>
+
+  <worldbody>
+    <body name="base" pos="0 0 0">
+      <geom type="cylinder" size="0.09 0.06" rgba="0.20 0.20 0.20 1"/>
+      <body name="shoulder" pos="0 0 0.1625">
+        <joint name="shoulder_pan_joint" axis="0 0 1" range="-6.28318530718 6.28318530718"/>
+        <geom type="box" size="0.06 0.06 0.09"/>
+        <body name="upper_arm" pos="0 0 0" euler="1.57079632679 0 0">
+          <joint name="shoulder_lift_joint" axis="0 0 1" range="-6.28318530718 6.28318530718"/>
+          <geom type="capsule" fromto="0 0 0 -0.425 0 0" size="0.055"/>
+          <body name="forearm" pos="-0.425 0 0">
+            <joint name="elbow_joint" axis="0 0 1" range="-6.28318530718 6.28318530718"/>
+            <geom type="capsule" fromto="0 0 0 -0.3922 0 0.1333" size="0.05"/>
+            <body name="wrist_1" pos="-0.3922 0 0.1333">
+              <joint name="wrist_1_joint" axis="0 0 1" range="-6.28318530718 6.28318530718"/>
+              <geom type="capsule" fromto="0 0 0 0 0 0.0997" size="0.045"/>
+              <body name="wrist_2" pos="0 0 0.0997" euler="1.57079632679 0 0">
+                <joint name="wrist_2_joint" axis="0 0 1" range="-6.28318530718 6.28318530718"/>
+                <geom type="capsule" fromto="0 0 0 0 0 0.0996" size="0.04"/>
+                <body name="wrist_3" pos="0 0 0.0996" euler="-1.57079632679 0 0">
+                  <joint name="wrist_3_joint" axis="0 0 1" range="-6.28318530718 6.28318530718"/>
+                  <geom type="capsule" fromto="0 0 0 0 0 0.135" size="0.035"/>
+
+                  <!-- tool0 flange -->
+                  <body name="tool0" pos="0 0 0.135">
+                    <site name="tool_site" pos="0 0 0" size="0.010" rgba="0 0.5 1 1"/>
+
+                    <!-- Gripper adapter plate -->
+                    <body name="gripper_base" pos="0 0 0.020">
+                      <geom name="gripper_adapter" type="box"
+                            size="0.035 0.035 0.020"
+                            rgba="0.15 0.15 0.15 1" mass="0.08"/>
+
+                      <!-- Left finger: slides in +Y direction -->
+                      <body name="left_finger" pos="0 0.020 0.060">
+                        <joint name="left_finger_joint" type="slide"
+                               axis="0 1 0" range="0 0.030"
+                               damping="2.0" armature="0.0001"/>
+                        <geom name="left_finger_geom" type="box"
+                              size="0.013 0.008 0.025"
+                              rgba="0.1 0.7 0.2 1" mass="0.02"/>
+                        <!-- Friction pad at inner fingertip -->
+                        <geom name="left_pad" type="box"
+                              size="0.010 0.005 0.008"
+                              pos="0 0.009 0.025"
+                              friction="1.5 0.005 0.0001"
+                              solimp="0.99 0.99 0.001"
+                              solref="0.002 1"
+                              condim="4"
+                              rgba="0.05 0.5 0.1 1"
+                              mass="0.005"/>
+                      </body>
+
+                      <!-- Right finger: slides in -Y direction (mirror of left) -->
+                      <body name="right_finger" pos="0 -0.020 0.060">
+                        <joint name="right_finger_joint" type="slide"
+                               axis="0 -1 0" range="0 0.030"
+                               damping="2.0" armature="0.0001"/>
+                        <geom name="right_finger_geom" type="box"
+                              size="0.013 0.008 0.025"
+                              rgba="0.1 0.7 0.2 1" mass="0.02"/>
+                        <!-- Friction pad at inner fingertip -->
+                        <geom name="right_pad" type="box"
+                              size="0.010 0.005 0.008"
+                              pos="0 -0.009 0.025"
+                              friction="1.5 0.005 0.0001"
+                              solimp="0.99 0.99 0.001"
+                              solref="0.002 1"
+                              condim="4"
+                              rgba="0.05 0.5 0.1 1"
+                              mass="0.005"/>
+                      </body>
+
+                      <!-- Fingertip center site (IK target = gripper tip) -->
+                      <site name="gripper_site" pos="0 0 0.090"
+                            size="0.008" rgba="1 0.5 0 1"/>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- Mirror right finger to left finger (equal opening) -->
+  <equality>
+    <joint name="finger_mirror"
+           joint1="left_finger_joint"
+           joint2="right_finger_joint"
+           polycoef="0 1 0 0 0"/>
+  </equality>
+
+  <actuator>
+    <!-- Arm: torque-controlled -->
+    <motor name="motor1" joint="shoulder_pan_joint"/>
+    <motor name="motor2" joint="shoulder_lift_joint"/>
+    <motor name="motor3" joint="elbow_joint"/>
+    <motor name="motor4" joint="wrist_1_joint"/>
+    <motor name="motor5" joint="wrist_2_joint"/>
+    <motor name="motor6" joint="wrist_3_joint"/>
+    <!-- Gripper: position-controlled (index 6) -->
+    <position name="gripper" joint="left_finger_joint"
+              kp="200" ctrllimited="true" ctrlrange="0 0.030"/>
+  </actuator>
+</mujoco>

@@ -1,5 +1,5 @@
 ---
-title: "MuJoCo Kinematics Lab — Part 4: Trajectory Generation and PD Control"
+title: "MuJoCo Robotics Lab — Part 4: Trajectory Generation and PD Control"
 date: "2026-03-11"
 description: "Generating smooth motion profiles with quintic polynomials and tracking them with PD control and gravity compensation."
 tags: ["Robotics", "Trajectory Planning", "PD Control", "MuJoCo", "Python"]
@@ -124,5 +124,5 @@ The final post brings everything together: computed torque control cancels the a
 
 ## Navigation
 
-- Previous: [Part 3](2026-03-10-mujoco-kinematics-lab-part-3.md)
-- Next: [Part 5](2026-03-12-mujoco-kinematics-lab-part-5.md)
+- Previous: [Part 3](2026-03-10-mujoco-robotics-lab-part-3.md)
+- Next: [Part 5](2026-03-12-mujoco-robotics-lab-part-5.md)

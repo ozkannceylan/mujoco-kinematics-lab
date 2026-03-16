@@ -1,6 +1,6 @@
 # CLAUDE.md — Robotics Lab Series
 
-You are working inside the `mujoco-kinematics-lab` repository.
+You are working inside the `mujoco-robotics-lab` repository.
 
 ## Goal
 
@@ -11,7 +11,9 @@ Build a portfolio-ready robotics lab series using MuJoCo, progressing from simpl
 - Engineer has a mechatronics background with a master's in RL for mobile robotics
 - Lab 1 (2-link planar arm) is complete — FK, Jacobian, IK, PD control, trajectory generation
 - Lab 2 (UR5e 6-DOF) is complete — scales Lab 1 foundations to an industrial arm with Pinocchio
-- Labs 3–9 are planned — dynamics, planning, manipulation, locomotion, VLA
+- Lab 3 (Dynamics & Force Control) is complete — RNEA/CRBA, gravity compensation, Cartesian impedance, hybrid force control
+- Lab 4 (Motion Planning) is complete — Pinocchio+HPP-FCL collision checking, RRT*, TOPP-RA trajectory parameterization
+- Labs 5–9 are planned — manipulation, dual-arm, locomotion, VLA
 - End goals: strengthen fundamentals for humanoid VLA work, prepare for robotics interviews, build a portfolio demo
 
 ## Tech Stack
@@ -44,7 +46,7 @@ MuJoCo   = physics simulator (step, render, contact, sensor)
 
 ### Step 1 — Read the lab brief
 
-Each lab has a detailed plan file at the repo root: `LAB_XX.md`. Read it fully before doing anything else. It contains objectives, theory scope, architecture, implementation phases, key design decisions, and success criteria.
+Each lab has a detailed plan file in the `plan/` directory: `plan/LAB_XX.md`. Read it fully before doing anything else. It contains objectives, theory scope, architecture, implementation phases, key design decisions, and success criteria.
 
 ### Step 2 — Create the lab folder and `tasks/` subfolder
 
@@ -168,49 +170,30 @@ Brief explanation of something non-obvious learned during implementation
 ## Project Structure
 
 ```
-mujoco-kinematics-lab/
+mujoco-robotics-lab/
 ├── CLAUDE.md                         # This file
-├── MASTER_PLAN.md                    # High-level roadmap for all labs
-├── LAB_03.md ... LAB_09.md           # Detailed briefs per lab
+├── plan/                             # Lab briefs (MASTER_PLAN.md, LAB_03.md … LAB_09.md)
 ├── README.md                         # Main project README
 │
 ├── lab-1-2link-arm/                  # ✅ Complete
-│   ├── src/
-│   ├── models/
-│   ├── docs/
-│   ├── docs-turkish/
-│   ├── media/
-│   ├── tests/
-│   └── README.md
-│
 ├── lab-2-Ur5e-robotics-lab/          # ✅ Complete
-│   ├── src/
-│   ├── models/
-│   ├── docs/
+├── lab-3-dynamics-force-control/     # ✅ Complete
+├── lab-4-motion-planning/            # ✅ Complete
+│
+│   # Each lab follows this layout:
+│   ├── tasks/    # PLAN.md, ARCHITECTURE.md, TODO.md, LESSONS.md
+│   ├── src/      # Python source (lab_N_common.py + modules)
+│   ├── models/   # MJCF / URDF files
+│   ├── docs/     # English documentation
 │   ├── docs-turkish/
-│   ├── media/
-│   ├── tests/
+│   ├── media/    # Plots, GIFs, videos
+│   ├── tests/    # test_*.py files
 │   └── README.md
 │
-├── lab-3-dynamics-force-control/     # 🔲 Not started
-│   ├── tasks/                        #   PLAN, ARCHITECTURE, TODO, LESSONS
-│   ├── src/
-│   ├── models/
-│   ├── docs/
-│   ├── docs-turkish/
-│   ├── media/
-│   ├── tests/
-│   └── README.md
-│
-├── ... (labs 4–9 follow same structure)
-│
-├── shared/                           # Shared utilities across labs
-│   ├── utils/
-│   └── visualization/
+├── lab-5-grasping-manipulation/      # 🔲 In progress
+├── ... (labs 6–9 follow same structure)
 │
 └── blog/                             # Blog posts per lab
-    ├── lab_01_planar_robot.md
-    └── ...
 ```
 
 ---
@@ -274,14 +257,29 @@ Solution: Menagerie models use `general` actuators with `tau = Kp*(ctrl-qpos) - 
 ### Issue: IK solutions may collide with scene objects (table, etc.)
 Solution: IK solvers don't know about obstacles. Always check `data.ncon` after setting `data.qpos` to each IK solution. If contacts exist, reposition the target or add a Y-offset to keep the arm clear.
 
+### Issue: Pinocchio GeometryObject constructor order
+Solution: Use `GeometryObject(name, parent_joint, parent_frame, placement, shape)`. The older order `(name, parent_joint, parent_frame, shape, placement)` is deprecated and silently wrong.
+
+### Issue: Adjacent-link self-collision produces false positives
+Solution: Skip collision pairs where parent joint indices differ by ≤1 (`adjacency_gap=1`). Adjacent links physically can't collide, and overlapping collision geometries at joints cause spurious collisions.
+
+### Issue: TOPP-RA crashes on near-duplicate waypoints
+Solution: Filter consecutive waypoints within `1e-8` of each other before constructing the arc-length spline. `scipy.interpolate.CubicSpline` requires strictly increasing arc-length values.
+
+### Issue: Lab src/ files need sys.path when imported cross-lab
+Solution: Each lab module that imports from another lab must add the foreign `src/` to `sys.path` at the top of the file using `Path(__file__).resolve()` and conditional `sys.path.insert(0, ...)`.
+
+### Issue: MuJoCo freejoint body qpos layout
+Solution: After arm joints (6) and gripper joints (2 with equality → 2 positions in qpos), the freejoint occupies qpos[8:15] (3 pos + 4 quat). Equality constraint does NOT reduce qpos size — both joint positions appear. Always verify with `mj_model.nq`.
+
 ---
 
 ## Lab Progress
 
 - [x] Lab 1: 2-Link Planar Arm (square drawing demo)
 - [x] Lab 2: UR5e 6-DOF Arm (cube drawing demo)
-- [ ] Lab 3: Dynamics & Force Control
-- [ ] Lab 4: Motion Planning & Collision Avoidance
+- [x] Lab 3: Dynamics & Force Control (gravity comp, Cartesian impedance, force control)
+- [x] Lab 4: Motion Planning & Collision Avoidance (RRT*, TOPP-RA, capstone demo)
 - [ ] Lab 5: Grasping & Manipulation
 - [ ] Lab 6: Dual-Arm Coordination
 - [ ] Lab 7: Locomotion Fundamentals
@@ -305,7 +303,7 @@ When something doesn't match between Pinocchio and MuJoCo:
 
 When starting work on any lab:
 1. Read this CLAUDE.md
-2. Read the lab brief: `LAB_XX.md`
+2. Read the lab brief: `plan/LAB_XX.md`
 3. Check `lab-N-<name>/tasks/TODO.md` for current state
 4. Check `lab-N-<name>/tasks/LESSONS.md` for known issues
 5. Resume from "Current Focus" in TODO.md

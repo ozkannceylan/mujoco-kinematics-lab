@@ -21,8 +21,8 @@ If you want the shortest path through the project, use this order:
 
 ## Direct Links
 
-- [Part 1](2026-03-08-mujoco-kinematics-lab-part-1.md)
-- [Part 2](2026-03-09-mujoco-kinematics-lab-part-2.md)
-- [Part 3](2026-03-10-mujoco-kinematics-lab-part-3.md)
-- [Part 4](2026-03-11-mujoco-kinematics-lab-part-4.md)
-- [Part 5](2026-03-12-mujoco-kinematics-lab-part-5.md)
+- [Part 1](2026-03-08-mujoco-robotics-lab-part-1.md)
+- [Part 2](2026-03-09-mujoco-robotics-lab-part-2.md)
+- [Part 3](2026-03-10-mujoco-robotics-lab-part-3.md)
+- [Part 4](2026-03-11-mujoco-robotics-lab-part-4.md)
+- [Part 5](2026-03-12-mujoco-robotics-lab-part-5.md)

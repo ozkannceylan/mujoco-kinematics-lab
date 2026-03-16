@@ -1,5 +1,5 @@
 ---
-title: "MuJoCo Kinematics Lab — Part 3: Inverse Kinematics — Analytic, Pseudo-inverse, and DLS"
+title: "MuJoCo Robotics Lab — Part 3: Inverse Kinematics — Analytic, Pseudo-inverse, and DLS"
 date: "2026-03-10"
 description: "Solving the inverse problem: comparing closed-form IK with numerical Jacobian methods and handling singularities."
 tags: ["Robotics", "Inverse Kinematics", "MuJoCo", "Jacobian", "Python"]
@@ -129,5 +129,5 @@ With IK in hand, we can convert Cartesian waypoints into joint-space targets. Th
 
 ## Navigation
 
-- Previous: [Part 2](2026-03-09-mujoco-kinematics-lab-part-2.md)
-- Next: [Part 4](2026-03-11-mujoco-kinematics-lab-part-4.md)
+- Previous: [Part 2](2026-03-09-mujoco-robotics-lab-part-2.md)
+- Next: [Part 4](2026-03-11-mujoco-robotics-lab-part-4.md)
