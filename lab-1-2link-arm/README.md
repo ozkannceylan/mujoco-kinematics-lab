@@ -117,11 +117,11 @@ The longer-form writeups live in [`blog/`](blog/README.md):
 
 | Part | Topic | Post |
 |---|---|---|
-| 1 | Setup and modeling | [Part 1](blog/2026-03-08-mujoco-kinematics-lab-part-1.md) |
-| 2 | FK, workspace, Jacobian | [Part 2](blog/2026-03-09-mujoco-kinematics-lab-part-2.md) |
-| 3 | IK, pseudo-inverse, DLS | [Part 3](blog/2026-03-10-mujoco-kinematics-lab-part-3.md) |
-| 4 | Trajectory generation and PD | [Part 4](blog/2026-03-11-mujoco-kinematics-lab-part-4.md) |
-| 5 | Computed torque and square drawing | [Part 5](blog/2026-03-12-mujoco-kinematics-lab-part-5.md) |
+| 1 | Setup and modeling | [Part 1](blog/2026-03-08-mujoco-robotics-lab-part-1.md) |
+| 2 | FK, workspace, Jacobian | [Part 2](blog/2026-03-09-mujoco-robotics-lab-part-2.md) |
+| 3 | IK, pseudo-inverse, DLS | [Part 3](blog/2026-03-10-mujoco-robotics-lab-part-3.md) |
+| 4 | Trajectory generation and PD | [Part 4](blog/2026-03-11-mujoco-robotics-lab-part-4.md) |
+| 5 | Computed torque and square drawing | [Part 5](blog/2026-03-12-mujoco-robotics-lab-part-5.md) |
 
 ---
 
@@ -132,3 +132,10 @@ The longer-form writeups live in [`blog/`](blog/README.md):
 - Turkish notes: [docs-turkish/](docs-turkish/)
 - Blog index: [blog/README.md](blog/README.md)
 - Final demo script: [src/c1_draw_square.py](src/c1_draw_square.py)
+
+---
+
+## License
+
+Unless noted otherwise, the Lab 1 source code and original documentation are
+covered by the repository root [Apache-2.0 license](../LICENSE).

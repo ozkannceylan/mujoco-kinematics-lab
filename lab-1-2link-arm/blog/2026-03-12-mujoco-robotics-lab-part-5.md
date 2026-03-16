@@ -1,5 +1,5 @@
 ---
-title: "MuJoCo Kinematics Lab — Part 5: Computed Torque Control — Drawing a Cartesian Square"
+title: "MuJoCo Robotics Lab — Part 5: Computed Torque Control — Drawing a Cartesian Square"
 date: "2026-03-12"
 description: "The grand finale: cancelling nonlinear dynamics with computed torque control to draw a precise Cartesian square in MuJoCo."
 tags: ["Robotics", "Computed Torque Control", "MuJoCo", "Dynamics", "Python"]
@@ -182,5 +182,5 @@ The local lab folder already contains the source code, documentation, media, and
 
 ## Navigation
 
-- Previous: [Part 4](2026-03-11-mujoco-kinematics-lab-part-4.md)
+- Previous: [Part 4](2026-03-11-mujoco-robotics-lab-part-4.md)
 - Back to lab overview: [../README.md](../README.md)

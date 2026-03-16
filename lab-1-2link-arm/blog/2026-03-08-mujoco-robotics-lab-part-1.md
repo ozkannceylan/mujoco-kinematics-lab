@@ -1,5 +1,5 @@
 ---
-title: "MuJoCo Kinematics Lab — Part 1: Setup and Modeling a 2-Link Robot"
+title: "MuJoCo Robotics Lab — Part 1: Setup and Modeling a 2-Link Robot"
 date: "2026-03-08"
 description: "Setting up a MuJoCo simulation environment and defining a 2-link planar manipulator in MJCF from scratch."
 tags: ["MuJoCo", "Robotics", "MJCF", "Simulation", "Python"]
@@ -147,4 +147,4 @@ With the model loaded and verified, the next post derives the **forward kinemati
 
 ## Navigation
 
-- Next: [Part 2](2026-03-09-mujoco-kinematics-lab-part-2.md)
+- Next: [Part 2](2026-03-09-mujoco-robotics-lab-part-2.md)

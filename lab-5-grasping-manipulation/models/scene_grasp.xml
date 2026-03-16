@@ -1,0 +1,80 @@
+<mujoco model="ur5e_lab5_scene">
+  <!--
+    Lab 5: Pick-and-Place Scene
+
+    Contents:
+      - UR5e arm with parallel-jaw gripper (from ur5e_gripper.xml)
+      - Floor and table
+      - grasp_box: graspable 40mm cube at BOX_A_POS (0.35, 0.20, 0.335)
+      - target_pad: visual marker at BOX_B_POS (0.35, -0.20, 0.315)
+
+    Table surface at z = 0.315 m (table center z=0.300, half-height=0.015)
+    Box center at z = 0.315 + 0.020 = 0.335 m (box half-height=0.020)
+  -->
+  <include file="ur5e_gripper.xml"/>
+
+  <statistic center="0.3 0 0.4" extent="1.2"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="150" elevation="-25" offwidth="1920" offheight="1080"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient"
+             rgb1="0.3 0.5 0.7" rgb2="0 0 0"
+             width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge"
+             rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8"
+             width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true"
+              texrepeat="5 5" reflectance="0.2"/>
+    <material name="table_mat" rgba="0.75 0.60 0.40 1"/>
+    <material name="box_mat" rgba="0.85 0.30 0.10 1"/>
+    <material name="target_mat" rgba="0.10 0.80 0.20 0.5"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 2.5" dir="0 0 -1" directional="true"/>
+    <light pos="1.5 -1.5 2.0" dir="-0.5 0.5 -1" directional="false"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <!-- Table: surface at z = 0.315 -->
+    <body name="table" pos="0.45 0 0.300">
+      <geom name="table_top" type="box" size="0.35 0.45 0.015"
+            material="table_mat" contype="1" conaffinity="1"
+            friction="0.8 0.005 0.0001"/>
+      <geom name="table_leg_fl" type="box" size="0.025 0.025 0.300"
+            pos="-0.30 0.40 -0.300" rgba="0.6 0.5 0.3 1"/>
+      <geom name="table_leg_fr" type="box" size="0.025 0.025 0.300"
+            pos="-0.30 -0.40 -0.300" rgba="0.6 0.5 0.3 1"/>
+      <geom name="table_leg_bl" type="box" size="0.025 0.025 0.300"
+            pos="0.30 0.40 -0.300" rgba="0.6 0.5 0.3 1"/>
+      <geom name="table_leg_br" type="box" size="0.025 0.025 0.300"
+            pos="0.30 -0.40 -0.300" rgba="0.6 0.5 0.3 1"/>
+    </body>
+
+    <!-- Graspable box at position A: world (0.35, 0.20, 0.335) -->
+    <body name="grasp_box" pos="0.35 0.20 0.335">
+      <freejoint name="box_joint"/>
+      <geom name="box_geom" type="box"
+            size="0.020 0.020 0.020"
+            material="box_mat"
+            mass="0.15"
+            friction="1.5 0.005 0.0001"
+            solimp="0.99 0.99 0.001"
+            solref="0.002 1"
+            condim="4"
+            contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- Target marker at position B: visual only (no collision) -->
+    <body name="target_pad" pos="0.35 -0.20 0.316">
+      <geom name="target_geom" type="box"
+            size="0.025 0.025 0.001"
+            material="target_mat"
+            contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+</mujoco>

@@ -1,5 +1,5 @@
 ---
-title: "MuJoCo Kinematics Lab — Part 2: Forward Kinematics, Workspace, and Jacobians"
+title: "MuJoCo Robotics Lab — Part 2: Forward Kinematics, Workspace, and Jacobians"
 date: "2026-03-09"
 description: "Deriving the geometry of motion: FK equations, workspace analysis, and the Jacobian matrix for a 2-link planar arm."
 tags: ["Robotics", "Kinematics", "Jacobian", "MuJoCo", "Python"]
@@ -146,5 +146,5 @@ The next post tackles the inverse problem: given a target (x, y), find the joint
 
 ## Navigation
 
-- Previous: [Part 1](2026-03-08-mujoco-kinematics-lab-part-1.md)
-- Next: [Part 3](2026-03-10-mujoco-kinematics-lab-part-3.md)
+- Previous: [Part 1](2026-03-08-mujoco-robotics-lab-part-1.md)
+- Next: [Part 3](2026-03-10-mujoco-robotics-lab-part-3.md)
