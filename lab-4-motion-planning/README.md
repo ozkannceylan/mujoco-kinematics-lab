@@ -69,6 +69,7 @@ python3 lab-4-motion-planning/src/record_lab4_validation.py
 
 ## Notes
 
-- The standard capstone demo keeps the original comparison scenario for stable RRT vs RRT* reporting.
-- The recorded validation video uses a stricter blocked-path scene (`CAPSTONE_OBSTACLES`) with every obstacle on the table, so the saved artifact proves tabletop obstacle avoidance instead of a trivial straight-line path.
+- The capstone demo weaves the UR5e through 4 staggered tabletop obstacle boxes using multi-segment RRT* planning.
+- 9 Cartesian waypoints at z=0.56 with gap-midpoint via-points ensure smooth IK continuity.
+- The validation video records the same slalom execution with native MuJoCo offscreen rendering.
 - Lab 4 is complete on the canonical real stack. Lab 5 is the next remaining end-to-end target.

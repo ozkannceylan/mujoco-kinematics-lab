@@ -53,13 +53,33 @@ class ObstacleSpec:
 
 
 OBSTACLES = (
-    ObstacleSpec("obs1", (0.40, -0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.22, 0.22, 1.0)),   # Red
-    ObstacleSpec("obs2", (0.50, 0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.45, 0.10, 1.0)),  # Orange
-    ObstacleSpec("obs3", (0.60, -0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.22, 0.22, 1.0)),    # Red
-    ObstacleSpec("obs4", (0.70, 0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.45, 0.10, 1.0)),   # Orange
+    # Staggered boxes on the table creating a slalom corridor.
+    # Each box: 10 cm deep, 10 cm wide, 20 cm tall (z = 0.315 to 0.515).
+    # Boxes alternate left/right so the arm must weave through gaps.
+    ObstacleSpec("box_1", (0.40, -0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.22, 0.22, 1.0)),
+    ObstacleSpec("box_2", (0.50,  0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.45, 0.10, 1.0)),
+    ObstacleSpec("box_3", (0.60, -0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.22, 0.22, 1.0)),
+    ObstacleSpec("box_4", (0.70,  0.15, 0.415), (0.05, 0.05, 0.10), (0.85, 0.45, 0.10, 1.0)),
 )
-CAPSTONE_OBSTACLES = OBSTACLES + (
-    ObstacleSpec("cap_block", (0.60, -0.18, 0.415), (0.05, 0.06, 0.10), (0.90, 0.45, 0.10, 1.0)), # Orange
+
+# Forward-only slalom waypoints with gap-midpoint via-points at z = 0.56.
+# Gap midpoints (Y~0) between consecutive boxes split each crossing into
+# two short segments, preventing RRT* from solving long narrow corridors.
+# Verified reachable with collision-free IK and min clearance > 0.03 m.
+SLALOM_WAYPOINTS = (
+    np.array([0.32, -0.30, 0.56]),   # 0  Start
+    np.array([0.38, -0.28, 0.56]),   # 1  Left of Box 1
+    np.array([0.45,  0.00, 0.56]),   # 2  Gap 1-2
+    np.array([0.50,  0.22, 0.56]),   # 3  Right of Box 2
+    np.array([0.55,  0.00, 0.56]),   # 4  Gap 2-3
+    np.array([0.60, -0.22, 0.56]),   # 5  Left of Box 3
+    np.array([0.65,  0.00, 0.56]),   # 6  Gap 3-4
+    np.array([0.70,  0.22, 0.56]),   # 7  Right of Box 4
+    np.array([0.76,  0.00, 0.56]),   # 8  Exit
+)
+SLALOM_LABELS = (
+    "Start", "Left of Box 1", "Gap 1-2", "Right of Box 2",
+    "Gap 2-3", "Left of Box 3", "Gap 3-4", "Right of Box 4", "Exit",
 )
 TABLE_SPEC = ObstacleSpec(
     "table",
@@ -67,6 +87,20 @@ TABLE_SPEC = ObstacleSpec(
     (0.30, 0.40, 0.015),
     (0.55, 0.38, 0.20, 1.0),
 )
+
+# ── Slalom planning parameters ──────────────────────────────────────────
+PLANNER_STEP_SIZE = 0.16
+PLANNER_GOAL_BIAS = 0.20
+PLANNER_REWIRE_RADIUS = 0.90
+PLANNER_GOAL_TOLERANCE = 0.10
+PLANNER_MAX_ITER = 2000
+PLANNER_SAMPLING_MARGIN = np.full(NUM_JOINTS, np.pi * 0.75)
+PLANNER_SEED_BANK = (42, 17, 7, 100, 200, 333, 500)
+SHORTCUT_ITER = 220
+IK_ERROR_TOL = 2e-3
+MIN_CLEARANCE_M = 0.03
+VEL_SCALE = 0.18
+ACC_SCALE = 0.14
 
 
 def _obstacle_key(obstacle_specs: tuple[ObstacleSpec, ...]) -> tuple[tuple, ...]:
@@ -164,3 +198,48 @@ def apply_arm_torques(mj_model, mj_data, tau: np.ndarray) -> None:
 def clip_torques(tau: np.ndarray) -> np.ndarray:
     """Clip arm torques to the UR5e torque limits."""
     return np.clip(tau, -TORQUE_LIMITS, TORQUE_LIMITS)
+
+
+def build_ik_seed_bank() -> list[np.ndarray]:
+    """Build a fixed 23-seed bank for position-only IK.
+
+    Q_HOME plus shoulder and elbow variants across 11 base rotation
+    offsets.  Gives robust coverage of the UR5e configuration space
+    for reachable table-top positions.
+    """
+    seeds = [Q_HOME.copy()]
+    for base_delta in np.linspace(-3.0, 2.0, 11):
+        shoulder_seed = Q_HOME.copy()
+        shoulder_seed[0] += base_delta
+        shoulder_seed[1] += 0.6
+        shoulder_seed[2] -= 0.4
+        seeds.append(shoulder_seed)
+
+        elbow_seed = Q_HOME.copy()
+        elbow_seed[0] += base_delta
+        elbow_seed[1] += 0.2
+        elbow_seed[2] -= 0.8
+        seeds.append(elbow_seed)
+    return seeds
+
+
+def densify_path(
+    path: list[np.ndarray],
+    max_step: float = 0.05,
+) -> list[np.ndarray]:
+    """Insert intermediate configs so consecutive points are <= max_step apart.
+
+    Prevents the TOPP-RA cubic spline from overshooting far beyond the
+    collision-free straight-line edges verified during shortcutting.
+    """
+    dense: list[np.ndarray] = [path[0].copy()]
+    for i in range(len(path) - 1):
+        diff = path[i + 1] - path[i]
+        dist = float(np.linalg.norm(diff))
+        if dist <= max_step:
+            dense.append(path[i + 1].copy())
+            continue
+        n_steps = max(2, int(np.ceil(dist / max_step)))
+        for j in range(1, n_steps + 1):
+            dense.append(path[i] + (j / n_steps) * diff)
+    return dense

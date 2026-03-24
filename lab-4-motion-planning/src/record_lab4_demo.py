@@ -1,8 +1,8 @@
 """Record the Lab 4 demo video: theory metrics + MuJoCo simulation.
 
 Uses the shared video pipeline (tools/video_producer.py) with:
-  Phase 1 — Animated metrics showing RRT vs RRT* comparison, path costs, tracking.
-  Phase 2 — Native MuJoCo rendering of RRT* trajectory execution through obstacles.
+  Phase 1 — Animated metrics showing slalom planning results.
+  Phase 2 — Native MuJoCo rendering of arm weaving through obstacles.
   Phase 3 — ffmpeg composition with title/end cards and crossfades.
 """
 
@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import os
 import sys
-import time
 from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/mpl")
 
 import mujoco
 import numpy as np
+import pinocchio as pin
 
 _SRC = Path(__file__).resolve().parent
 _LAB_DIR = _SRC.parent
@@ -27,15 +27,14 @@ if str(_SRC) not in sys.path:
 if str(_PROJECT_ROOT / "tools") not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT / "tools"))
 
-from collision_checker import CollisionChecker
+from capstone_demo import run_capstone
 from lab4_common import (
-    ACC_LIMITS,
     DT,
     MEDIA_DIR,
+    MIN_CLEARANCE_M,
     NUM_JOINTS,
-    Q_HOME,
-    TORQUE_LIMITS,
-    VEL_LIMITS,
+    OBSTACLES,
+    SLALOM_LABELS,
     apply_arm_torques,
     clip_torques,
     get_ee_pos,
@@ -43,10 +42,7 @@ from lab4_common import (
     load_mujoco_model,
     load_pinocchio_model,
 )
-from rrt_planner import RRTStarPlanner
-from trajectory_executor import execute_trajectory
-from trajectory_smoother import parameterize_topp_ra, shortcut_path
-from video_producer import LabVideoProducer, add_marker_to_scene, add_polyline_to_scene
+from video_producer import LabVideoProducer
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -55,187 +51,69 @@ LAB_NAME = "Lab 4: Motion Planning & Collision Avoidance"
 OUTPUT_DIR = MEDIA_DIR
 
 
-def _path_cost(path: list[np.ndarray]) -> float:
-    return sum(np.linalg.norm(path[i + 1] - path[i]) for i in range(len(path) - 1))
-
-
 # ---------------------------------------------------------------------------
-# Run the planning pipeline and collect metrics
-# ---------------------------------------------------------------------------
-
-def compute_all_metrics() -> dict:
-    """Run RRT, RRT*, shortcutting, TOPP-RA, execution and collect all metrics."""
-    cc = CollisionChecker()
-    pin_model, pin_data, ee_fid = load_pinocchio_model()
-
-    q_start = Q_HOME.copy()
-    q_goal = np.array([0.3, -1.3, 1.0, -1.2, -np.pi / 2, 0.0])
-
-    ee_start = get_ee_pos(pin_model, pin_data, ee_fid, q_start)
-    ee_goal = get_ee_pos(pin_model, pin_data, ee_fid, q_goal)
-    direct_free = cc.is_path_free(q_start, q_goal)
-
-    # RRT planning
-    print("  Planning with RRT...")
-    planner_rrt = RRTStarPlanner(cc, step_size=0.3, goal_bias=0.15)
-    t0 = time.time()
-    path_rrt = planner_rrt.plan(q_start, q_goal, max_iter=5000, rrt_star=False, seed=42)
-    t_rrt = time.time() - t0
-    assert path_rrt is not None, "RRT failed"
-
-    # RRT* planning
-    print("  Planning with RRT*...")
-    planner_star = RRTStarPlanner(cc, step_size=0.3, goal_bias=0.1, rewire_radius=1.0)
-    t0 = time.time()
-    path_star = planner_star.plan(q_start, q_goal, max_iter=5000, rrt_star=True, seed=42)
-    t_star = time.time() - t0
-    assert path_star is not None, "RRT* failed"
-
-    # Shortcutting
-    print("  Shortcutting paths...")
-    short_rrt = shortcut_path(path_rrt, cc, max_iter=300, seed=42)
-    short_star = shortcut_path(path_star, cc, max_iter=300, seed=42)
-
-    # TOPP-RA
-    print("  Time-parameterizing...")
-    t_rrt_traj, q_rrt_traj, qd_rrt_traj, _ = parameterize_topp_ra(short_rrt, VEL_LIMITS, ACC_LIMITS)
-    t_star_traj, q_star_traj, qd_star_traj, _ = parameterize_topp_ra(short_star, VEL_LIMITS, ACC_LIMITS)
-
-    # Execution
-    print("  Executing RRT trajectory...")
-    res_rrt = execute_trajectory(t_rrt_traj, q_rrt_traj, qd_rrt_traj)
-    print("  Executing RRT* trajectory...")
-    res_star = execute_trajectory(t_star_traj, q_star_traj, qd_star_traj)
-
-    rms_rrt = float(np.sqrt(np.mean((res_rrt["q_actual"] - res_rrt["q_desired"]) ** 2)))
-    rms_star = float(np.sqrt(np.mean((res_star["q_actual"] - res_star["q_desired"]) ** 2)))
-    final_rrt = float(np.linalg.norm(res_rrt["q_actual"][-1] - q_goal))
-    final_star = float(np.linalg.norm(res_star["q_actual"][-1] - q_goal))
-
-    # EE trajectory for plotting
-    ee_rrt_traj = res_rrt["ee_pos"]
-    ee_star_traj = res_star["ee_pos"]
-
-    # Cost history from RRT*
-    cost_history = planner_star.cost_history if hasattr(planner_star, "cost_history") else []
-
-    return {
-        "q_start": q_start,
-        "q_goal": q_goal,
-        "ee_start": ee_start,
-        "ee_goal": ee_goal,
-        "direct_free": direct_free,
-        # RRT
-        "rrt_waypoints": len(path_rrt),
-        "rrt_cost": _path_cost(path_rrt),
-        "rrt_tree_size": len(planner_rrt.tree),
-        "rrt_time": t_rrt,
-        "rrt_shortcut_waypoints": len(short_rrt),
-        "rrt_shortcut_cost": _path_cost(short_rrt),
-        "rrt_duration": float(t_rrt_traj[-1]),
-        "rrt_rms": rms_rrt,
-        "rrt_final_err": final_rrt,
-        # RRT*
-        "star_waypoints": len(path_star),
-        "star_cost": _path_cost(path_star),
-        "star_tree_size": len(planner_star.tree),
-        "star_time": t_star,
-        "star_shortcut_waypoints": len(short_star),
-        "star_shortcut_cost": _path_cost(short_star),
-        "star_duration": float(t_star_traj[-1]),
-        "star_rms": rms_star,
-        "star_final_err": final_star,
-        # Cost convergence
-        "cost_history": cost_history,
-        # Execution results for plots
-        "res_rrt": res_rrt,
-        "res_star": res_star,
-        # Trajectories for simulation
-        "t_star_traj": t_star_traj,
-        "q_star_traj": q_star_traj,
-        "qd_star_traj": qd_star_traj,
-        "short_star": short_star,
-        "ee_star_traj": ee_star_traj,
-        "ee_rrt_traj": ee_rrt_traj,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Build metrics plots (4 panels)
+# Build metrics plots from capstone results
 # ---------------------------------------------------------------------------
 
 def build_plots(m: dict) -> list[dict]:
-    res_rrt = m["res_rrt"]
-    res_star = m["res_star"]
+    """Build plot specs for the shared video producer."""
+    result = m["result"]
 
-    # Plot 1: RRT vs RRT* tracking error
-    err_rrt = np.max(np.abs(res_rrt["q_actual"] - res_rrt["q_desired"]), axis=1)
-    err_star = np.max(np.abs(res_star["q_actual"] - res_star["q_desired"]), axis=1)
-    plot_tracking = {
-        "title": "Tracking Error (max joint)",
-        "xlabel": "Time (s)",
-        "ylabel": "Error (rad)",
-        "type": "line",
-        "series": [
-            {"type": "line", "x": res_rrt["time"], "y": err_rrt, "label": "RRT", "color": "#ff9e66"},
-            {"type": "line", "x": res_star["time"], "y": err_star, "label": "RRT*", "color": "#58c4dd"},
-        ],
-    }
-
-    # Plot 2: EE trajectory XY
+    # Plot 1: EE trajectory XY with obstacles
+    ee = result["ee_pos"]
     plot_ee = {
-        "title": "End-Effector XY Path",
+        "title": "End-Effector Slalom Path (XY)",
         "xlabel": "X (m)",
         "ylabel": "Y (m)",
         "type": "line",
         "series": [
-            {"type": "line", "x": m["ee_rrt_traj"][:, 0], "y": m["ee_rrt_traj"][:, 1],
-             "label": "RRT", "color": "#ff9e66"},
-            {"type": "line", "x": m["ee_star_traj"][:, 0], "y": m["ee_star_traj"][:, 1],
-             "label": "RRT*", "color": "#58c4dd"},
+            {"type": "line", "x": ee[:, 0], "y": ee[:, 1],
+             "label": "EE Path", "color": "#58c4dd"},
         ],
     }
 
-    # Plot 3: RRT* cost convergence
-    if m["cost_history"]:
-        hist = np.array(m["cost_history"])
-        plot_cost = {
-            "title": "RRT* Path Cost Convergence",
-            "xlabel": "Iteration",
-            "ylabel": "Cost (rad)",
-            "data": (np.arange(len(hist)), hist),
-            "color": "#9bde7e",
-        }
-    else:
-        plot_cost = {
-            "title": "RRT* Path Cost Convergence",
-            "xlabel": "Iteration",
-            "ylabel": "Cost (rad)",
-            "data": (np.array([0, 1]), np.array([m["star_cost"], m["star_cost"]])),
-            "color": "#9bde7e",
-        }
-
-    # Plot 4: Joint torques during RRT* execution
-    tau_max = np.max(np.abs(res_star["tau"]), axis=1)
-    plot_torque = {
-        "title": "RRT* Max Joint Torque",
+    # Plot 2: Obstacle clearance profile
+    plot_clr = {
+        "title": "Obstacle Clearance Profile",
         "xlabel": "Time (s)",
-        "ylabel": "Torque (Nm)",
-        "data": (res_star["time"], tau_max),
+        "ylabel": "Min Clearance (m)",
+        "data": (m["sample_times"], m["clr_profile"]),
+        "color": "#9bde7e",
+        "threshold": (MIN_CLEARANCE_M, f"{MIN_CLEARANCE_M} m threshold"),
+    }
+
+    # Plot 3: Tracking error
+    err = np.max(np.abs(result["q_actual"] - result["q_desired"]), axis=1)
+    plot_err = {
+        "title": "Max Joint Tracking Error",
+        "xlabel": "Time (s)",
+        "ylabel": "Error (rad)",
+        "data": (result["time"], err),
         "color": "#c792ea",
     }
 
-    return [plot_tracking, plot_ee, plot_cost, plot_torque]
+    # Plot 4: Joint torques
+    tau_max = np.max(np.abs(result["tau"]), axis=1)
+    plot_tau = {
+        "title": "Max Joint Torque",
+        "xlabel": "Time (s)",
+        "ylabel": "Torque (Nm)",
+        "data": (result["time"], tau_max),
+        "color": "#ff9e66",
+    }
+
+    return [plot_ee, plot_clr, plot_err, plot_tau]
 
 
 def build_kpi(m: dict) -> dict[str, str]:
+    """Build KPI overlay for the metrics clip."""
     return {
-        "RRT Tree": f"{m['rrt_tree_size']} nodes",
-        "RRT* Tree": f"{m['star_tree_size']} nodes",
-        "RRT* Cost": f"{m['star_shortcut_cost']:.2f} rad",
-        "Track RMS": f"{m['star_rms']:.4f} rad",
-        "Final Error": f"{m['star_final_err']:.4f} rad",
-        "Duration": f"{m['star_duration']:.2f} s",
+        "Waypoints": f"{len(SLALOM_LABELS)}",
+        "Tree Nodes": f"{m['tree_nodes']}",
+        "Min Clearance": f"{m['min_clearance']:.3f} m",
+        "Track RMS": f"{m['rms']:.4f} rad",
+        "Final Error": f"{m['final_err']:.4f} rad",
+        "Duration": f"{m['times'][-1]:.2f} s",
     }
 
 
@@ -250,9 +128,7 @@ def make_trajectory_controller(
     Kp: float = 400.0,
     Kd: float = 40.0,
 ) -> tuple:
-    """Create a controller function for MuJoCo recording of trajectory execution."""
-    import pinocchio as pin_lib
-
+    """Create a controller function for MuJoCo recording."""
     pin_model, pin_data, _ = load_pinocchio_model()
     traj_duration = float(t_traj[-1])
     total_duration = traj_duration + 1.0
@@ -270,7 +146,7 @@ def make_trajectory_controller(
         q = data.qpos[:NUM_JOINTS].copy()
         qd = data.qvel[:NUM_JOINTS].copy()
 
-        pin_lib.computeGeneralizedGravity(pin_model, pin_data, q)
+        pin.computeGeneralizedGravity(pin_model, pin_data, q)
         g = pin_data.g.copy()
 
         tau = Kp * (q_d - q) + Kd * (qd_d - qd) + g
@@ -286,13 +162,13 @@ def make_trajectory_controller(
 
 def make_status_text_fn(m: dict):
     """Create a status overlay for the simulation recording."""
-    traj_duration = float(m["t_star_traj"][-1])
+    traj_duration = float(m["times"][-1])
 
     def status_fn(model, data, step, current_time):
         ee_pos = get_mj_ee_pos(model, data)
-        phase = "Tracking" if current_time <= traj_duration else "Holding"
+        phase = "Weaving" if current_time <= traj_duration else "Holding"
         return {
-            "RRT* Trajectory Execution": "",
+            "Slalom Execution": "",
             f"Time: {current_time:.1f}s / {traj_duration:.1f}s": "",
             f"Phase: {phase}": "",
             f"EE: [{ee_pos[0]:.3f}, {ee_pos[1]:.3f}, {ee_pos[2]:.3f}]": "",
@@ -302,14 +178,21 @@ def make_status_text_fn(m: dict):
 
 
 def camera_schedule(current_time: float, progress: float) -> dict:
-    """Orbit camera during simulation."""
-    azimuth = 140.0 + 40.0 * progress
-    elevation = -30.0 - 15.0 * progress
+    """Top-down start transitioning to orbit view."""
+    if progress < 0.40:
+        return {
+            "lookat": [0.55, 0.0, 0.42],
+            "distance": 1.40,
+            "elevation": -85.0,
+            "azimuth": 90.0,
+        }
+    blend = min(1.0, (progress - 0.40) / 0.60)
+    eased = 0.5 - 0.5 * np.cos(np.pi * blend)
     return {
-        "lookat": [0.45, 0.0, 0.42],
-        "distance": 1.50,
-        "elevation": elevation,
-        "azimuth": azimuth,
+        "lookat": [0.55 + 0.03 * eased, 0.0, 0.42],
+        "distance": 1.40 + 0.12 * eased,
+        "elevation": -85.0 + 49.0 * eased,
+        "azimuth": 90.0 + 38.0 * eased,
     }
 
 
@@ -319,12 +202,12 @@ def camera_schedule(current_time: float, progress: float) -> dict:
 
 def main() -> Path:
     print("=" * 60)
-    print("Lab 4 Demo Video — Theory + Simulation")
+    print("Lab 4 Demo Video — Slalom Planning + Simulation")
     print("=" * 60)
 
-    # Step 1: Compute all metrics
-    print("\n[1/3] Running planning and execution pipeline...")
-    metrics = compute_all_metrics()
+    # Step 1: Run the capstone pipeline
+    print("\n[1/3] Running slalom planning and execution pipeline...")
+    metrics = run_capstone()
 
     # Step 2: Build video producer
     producer = LabVideoProducer(lab_name=LAB_NAME, output_dir=OUTPUT_DIR)
@@ -336,30 +219,30 @@ def main() -> Path:
     metrics_clip = producer.create_metrics_clip(
         plots=plots,
         kpi_overlay=kpi,
-        title_text="RRT vs RRT* Planning Comparison",
+        title_text="Slalom Planning Through Obstacles",
         duration_sec=12.0,
     )
     print(f"  Metrics clip: {metrics_clip}")
 
-    # Step 4: Record MuJoCo simulation (RRT* execution)
+    # Step 4: Record MuJoCo simulation
     print("\n[3/3] Recording MuJoCo simulation...")
     mj_model, mj_data = load_mujoco_model()
 
-    mj_data.qpos[:NUM_JOINTS] = metrics["q_start"].copy()
+    mj_data.qpos[:NUM_JOINTS] = metrics["configs"][0].copy()
     mj_data.qvel[:] = 0.0
     mujoco.mj_forward(mj_model, mj_data)
 
     controller_fn, total_duration = make_trajectory_controller(
-        metrics["t_star_traj"],
-        metrics["q_star_traj"],
-        metrics["qd_star_traj"],
+        metrics["times"],
+        metrics["q_traj"],
+        metrics["qd_traj"],
     )
 
     # Planned EE path for visual trace
     pin_model, pin_data, ee_fid = load_pinocchio_model()
     planned_ee = np.array([
         get_ee_pos(pin_model, pin_data, ee_fid, q)
-        for q in metrics["short_star"]
+        for q in metrics["dense_path"]
     ])
 
     simulation_clip = producer.record_simulation(
@@ -367,7 +250,7 @@ def main() -> Path:
         data=mj_data,
         controller_fn=controller_fn,
         camera_name="orbit_45",
-        playback_speed=0.4,
+        playback_speed=0.3,
         trace_ee=True,
         trace_site_name="2f85_pinch",
         duration_sec=total_duration + 1.0,
