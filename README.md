@@ -1,4 +1,4 @@
-# MuJoCo Kinematics Lab
+# MuJoCo Robotics Lab
 
 A hands-on robotics lab series for rebuilding robotics fundamentals in simulation with **MuJoCo**. Each lab focuses on a different robot, progressing from simple planar arms to industrial 6-DOF manipulators.
 
@@ -47,7 +47,7 @@ A full 6-DOF industrial manipulator using the **UR5e** model from MuJoCo Menager
 ## Repository Structure
 
 ```
-mujoco-kinematics-lab/
+mujoco-robotics-lab/
 ├── lab-1-2link-arm/              # Lab 1: 2-Link Planar Arm
 │   ├── src/                      #   Source scripts (A1–C1)
 │   ├── models/                   #   MuJoCo XML models
@@ -124,3 +124,25 @@ Both engines are cross-validated against each other at every stage to ensure cor
 ## Documentation
 
 Each lab has full English and Turkish documentation in its `docs/` and `docs-turkish/` folders. See the individual lab READMEs for links.
+
+---
+
+## Open Source
+
+The original code, documentation, and writeups in this repository are released
+under the Apache License 2.0. See [LICENSE](LICENSE).
+
+This repository also includes third-party robot models and description assets
+that keep their own upstream licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+for the exact paths and license scope.
+
+Important: a subset of bundled Universal Robots mesh directories in
+`lab-2-Ur5e-robotics-lab/models/Universal_Robots_ROS2_Description/meshes/`
+is redistributable under vendor terms but is not fully OSI-open-source. The
+project's root license does not override those files.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development expectations,
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community standards, and
+[SECURITY.md](SECURITY.md) for responsible disclosure guidance.
