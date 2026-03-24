@@ -165,3 +165,15 @@ The long-form writeups live in [`blog/`](blog/README.md):
 - This lab is no longer dependency-light. The source tree expects `numpy`, and most modules also expect `mujoco` and `pinocchio`.
 - In the current workspace, documentation and links were verified statically, but the full unittest suite was not runnable because `numpy` is not installed.
 - Historical CSV snapshots are versioned in `docs/` and `docs-turkish/`. Re-running the scripts may regenerate them with slightly different numeric values depending on your environment and library versions.
+
+---
+
+## License
+
+The Lab 2 source code and original documentation are covered by the repository
+root [Apache-2.0 license](../LICENSE).
+
+Bundled robot description packages and model assets in [`models/`](models/) keep
+their upstream licenses. See the repository root
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) for the exact carve-outs,
+including Universal Robots mesh directories that are not fully OSI-open-source.
