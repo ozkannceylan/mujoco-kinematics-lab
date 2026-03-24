@@ -1,11 +1,7 @@
 """Record a Lab 4 validation video using native MuJoCo offscreen rendering.
 
-Produces a real MuJoCo simulation video of tabletop obstacle-avoidance,
-comparable to Lab 2 native recordings.
-
-The scenario: UR5e moves from Q_HOME to a table-reaching configuration.
-The direct path is blocked by colored obstacle boxes on the table, so the
-RRT planner finds a collision-free path that lifts the arm over/around them.
+Demonstrates the UR5e weaving through tabletop obstacle boxes using the
+slalom planning pipeline (IK -> per-segment RRT* -> TOPP-RA -> execute).
 
 Usage:
     python3 lab-4-motion-planning/src/record_lab4_validation.py
@@ -19,39 +15,42 @@ from pathlib import Path
 import imageio.v3 as iio
 import mujoco
 import numpy as np
+import pinocchio as pin
 
 _SRC = Path(__file__).resolve().parent
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
+from capstone_demo import ClearanceAwareChecker, plan_segments, solve_waypoints
 from collision_checker import CollisionChecker
 from lab4_common import (
     ACC_LIMITS,
-    CAPSTONE_OBSTACLES,
+    ACC_SCALE,
+    DT,
     MEDIA_DIR,
-    Q_HOME,
+    NUM_JOINTS,
+    OBSTACLES,
+    SLALOM_WAYPOINTS,
     VEL_LIMITS,
+    VEL_SCALE,
+    apply_arm_torques,
+    clip_torques,
+    densify_path,
     get_ee_pos,
+    get_mj_ee_pos,
     load_mujoco_model,
     load_pinocchio_model,
 )
-from rrt_planner import RRTStarPlanner
-from trajectory_executor import execute_trajectory
-from trajectory_smoother import parameterize_topp_ra, shortcut_path
+from trajectory_smoother import parameterize_topp_ra
 
 # ── Video settings ────────────────────────────────────────────────────────
 VIDEO_PATH = MEDIA_DIR / "lab4_validation_real_stack.mp4"
 WIDTH, HEIGHT = 1280, 720
 FPS = 30
 
-# Goal: arm reaching right-far side of the table (EE ≈ [0.50, -0.20, 0.50]).
-# Found via position-only IK with seed j0≈-3.6. The direct path from Q_HOME
-# to this config is blocked by the table obstacles (collision at α≈0.63-0.79).
-Q_GOAL = np.array([-3.592, -1.558, 1.257, -1.526, -1.955, -0.103])
-
-# Slower limits for smooth, readable motion in the video
-VIDEO_VEL_LIMITS = 0.55 * VEL_LIMITS
-VIDEO_ACC_LIMITS = 0.45 * ACC_LIMITS
+# Slower limits for smooth, readable video motion
+VIDEO_VEL_SCALE = 0.12
+VIDEO_ACC_SCALE = 0.10
 
 
 # ── Scene overlay helpers ─────────────────────────────────────────────────
@@ -82,7 +81,7 @@ def _add_trail_to_scene(
     size: float = 0.005,
     rgba: tuple[float, float, float, float] = (0.15, 0.50, 0.95, 0.90),
 ) -> None:
-    """Draw the EE trail as blue spheres in the rendered scene."""
+    """Draw the EE trail as blue spheres."""
     for pos in trail:
         _add_sphere_to_scene(scn, pos, size, rgba)
 
@@ -97,123 +96,150 @@ def _add_markers(
     _add_sphere_to_scene(scn, goal_pos, 0.018, (0.9, 0.1, 0.1, 1.0))
 
 
-def _path_cost(path: list[np.ndarray]) -> float:
-    """Compute total L2 cost of a joint-space path."""
-    return sum(np.linalg.norm(path[i + 1] - path[i]) for i in range(len(path) - 1))
-
-
 # ── Main recording function ──────────────────────────────────────────────
 
 def record_video(output_path: Path = VIDEO_PATH) -> Path:
-    """Run the full Lab 4 validation pipeline and record to MP4."""
+    """Run the slalom pipeline and record the execution to MP4."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("=" * 72)
-    print("Lab 4 Validation — Native MuJoCo Recording")
+    print("Lab 4 Validation — Slalom Obstacle Avoidance")
     print("=" * 72)
 
-    # ── 1. Verify scenario ────────────────────────────────────────────────
-    print("\n  [1/5] Building collision checker and verifying scenario...")
-    cc = CollisionChecker(obstacle_specs=list(CAPSTONE_OBSTACLES))
-
-    assert cc.is_collision_free(Q_HOME), "Q_HOME in collision!"
-    assert cc.is_collision_free(Q_GOAL), "Q_GOAL in collision!"
-    assert not cc.is_path_free(Q_HOME, Q_GOAL), "Direct path must be blocked!"
-
+    # ── 1. Solve IK + plan ─────────────────────────────────────────────────
+    print("\n  [1/5] Solving IK and planning...")
+    cc = CollisionChecker(obstacle_specs=list(OBSTACLES))
+    cc_clr = ClearanceAwareChecker(cc)
     pin_model, pin_data, ee_fid = load_pinocchio_model()
-    ee_start = get_ee_pos(pin_model, pin_data, ee_fid, Q_HOME)
-    ee_goal = get_ee_pos(pin_model, pin_data, ee_fid, Q_GOAL)
-    print(f"  Start EE: [{ee_start[0]:.3f}, {ee_start[1]:.3f}, {ee_start[2]:.3f}]")
-    print(f"  Goal EE:  [{ee_goal[0]:.3f}, {ee_goal[1]:.3f}, {ee_goal[2]:.3f}]")
-    print(f"  Direct path blocked: True")
 
-    # ── 2. Plan collision-free path ───────────────────────────────────────
-    print("\n  [2/5] Running RRT planner...")
-    planner = RRTStarPlanner(cc, step_size=0.3, goal_bias=0.15)
-    raw_path = planner.plan(Q_HOME, Q_GOAL, max_iter=8000, rrt_star=False, seed=42)
-    if raw_path is None:
-        raise RuntimeError("RRT failed to find a path.")
+    configs, clearances = solve_waypoints(cc)
+    full_path, planning_time, _ = plan_segments(cc_clr, configs)
 
-    short_path = shortcut_path(raw_path, cc, max_iter=300, seed=42)
-    print(f"  Raw: {len(raw_path)} wps (cost {_path_cost(raw_path):.3f})")
-    print(f"  Short: {len(short_path)} wps (cost {_path_cost(short_path):.3f})")
+    print(f"  Waypoints: {len(SLALOM_WAYPOINTS)}, path: {len(full_path)} wps")
+    print(f"  Planning time: {planning_time:.2f}s")
 
-    for i, q in enumerate(short_path):
-        ee = get_ee_pos(pin_model, pin_data, ee_fid, q)
-        print(f"    wp {i}: EE=[{ee[0]:.3f}, {ee[1]:.3f}, {ee[2]:.3f}]")
+    for i, (cfg, clr) in enumerate(zip(configs, clearances)):
+        ee = get_ee_pos(pin_model, pin_data, ee_fid, cfg)
+        print(f"    WP{i}: EE=[{ee[0]:.3f}, {ee[1]:.3f}, {ee[2]:.3f}] clr={clr:.3f}m")
 
-    # ── 3. Time-parameterize and execute ──────────────────────────────────
-    print("\n  [3/5] TOPP-RA + MuJoCo execution...")
-    times, pos, vel, _ = parameterize_topp_ra(short_path, VIDEO_VEL_LIMITS, VIDEO_ACC_LIMITS)
-    result = execute_trajectory(times, pos, vel, obstacle_specs=CAPSTONE_OBSTACLES)
+    ee_start = get_ee_pos(pin_model, pin_data, ee_fid, configs[0])
+    ee_goal = get_ee_pos(pin_model, pin_data, ee_fid, configs[-1])
 
-    rms = float(np.sqrt(np.mean((result["q_actual"] - result["q_desired"]) ** 2)))
-    final_err = float(np.linalg.norm(result["q_actual"][-1] - Q_GOAL))
-    print(f"  Trajectory duration: {times[-1]:.3f} s")
-    print(f"  RMS tracking error:  {rms:.4f} rad")
-    print(f"  Final position error: {final_err:.4f} rad")
+    # ── 2. Time-parameterize ───────────────────────────────────────────────
+    print("\n  [2/5] Time-parameterizing...")
+    dense = densify_path(full_path, max_step=0.02)
+    times, q_traj, qd_traj, _ = parameterize_topp_ra(
+        dense,
+        VIDEO_VEL_SCALE * VEL_LIMITS,
+        VIDEO_ACC_SCALE * ACC_LIMITS,
+        dt=DT,
+    )
+    traj_duration = float(times[-1])
+    print(f"  Duration: {traj_duration:.2f}s, samples: {len(times)}")
 
-    # ── 4. Render with mujoco.Renderer ────────────────────────────────────
+    # ── 3. Execute in MuJoCo ──────────────────────────────────────────────
+    print("\n  [3/5] Executing in MuJoCo...")
+    mj_model, mj_data = load_mujoco_model()
+    pin_ctrl_model, pin_ctrl_data, _ = load_pinocchio_model()
+
+    mj_data.qpos[:NUM_JOINTS] = q_traj[0]
+    mj_data.qvel[:NUM_JOINTS] = 0.0
+    mujoco.mj_forward(mj_model, mj_data)
+
+    settle_time = 0.5
+    total_duration = traj_duration + settle_time
+    n_steps = int(total_duration / DT) + 1
+
+    q_log = np.zeros((n_steps, NUM_JOINTS))
+    ee_log = np.zeros((n_steps, 3))
+
+    for step in range(n_steps):
+        t = step * DT
+        if t <= traj_duration:
+            q_d = np.array([np.interp(t, times, q_traj[:, j]) for j in range(NUM_JOINTS)])
+            qd_d = np.array([np.interp(t, times, qd_traj[:, j]) for j in range(NUM_JOINTS)])
+        else:
+            q_d = q_traj[-1]
+            qd_d = np.zeros(NUM_JOINTS)
+
+        q = mj_data.qpos[:NUM_JOINTS].copy()
+        qd = mj_data.qvel[:NUM_JOINTS].copy()
+
+        pin.computeGeneralizedGravity(pin_ctrl_model, pin_ctrl_data, q)
+        g = pin_ctrl_data.g.copy()
+        tau = 400.0 * (q_d - q) + 40.0 * (qd_d - qd) + g
+        tau = clip_torques(tau)
+        apply_arm_torques(mj_model, mj_data, tau)
+
+        q_log[step] = q
+        ee_log[step] = get_mj_ee_pos(mj_model, mj_data)
+        mujoco.mj_step(mj_model, mj_data)
+
+    q_desired = np.array([
+        [np.interp(np.clip(s * DT, 0, traj_duration), times, q_traj[:, j])
+         for j in range(NUM_JOINTS)]
+        for s in range(n_steps)
+    ])
+    rms = float(np.sqrt(np.mean((q_log - q_desired) ** 2)))
+    print(f"  Execution complete: {n_steps} steps, RMS={rms:.4f} rad")
+
+    # ── 4. Render frames ──────────────────────────────────────────────────
     print(f"\n  [4/5] Rendering {WIDTH}x{HEIGHT} @ {FPS} fps...")
-    mj_model, mj_data = load_mujoco_model(obstacle_specs=CAPSTONE_OBSTACLES)
-    renderer = mujoco.Renderer(mj_model, HEIGHT, WIDTH)
+    mj_data.qpos[:NUM_JOINTS] = q_log[0]
+    mj_data.qvel[:] = 0.0
+    mujoco.mj_forward(mj_model, mj_data)
 
+    renderer = mujoco.Renderer(mj_model, HEIGHT, WIDTH)
     cam = mujoco.MjvCamera()
-    cam.lookat = np.array([0.30, 0.0, 0.40])
-    cam.distance = 1.65
-    cam.elevation = -25.0
+    cam.lookat = np.array([0.55, 0.0, 0.42])
+    cam.distance = 1.50
 
     opt = mujoco.MjvOption()
     opt.flags[mujoco.mjtVisFlag.mjVIS_CONTACTPOINT] = False
     opt.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = False
 
-    # Camera orbit: sweep 120° so obstacles are visible from all sides
-    AZ_START = 200.0
-    AZ_END = 320.0
-
-    # Sample sim data at video frame rate
-    sim_dt = 0.001
+    # Camera: start top-down, transition to orbit
+    sim_dt = DT
     stride = max(1, int(round(1.0 / (FPS * sim_dt))))
-    num_steps = len(result["time"])
-    frame_indices = np.arange(0, num_steps, stride, dtype=int)
-    if frame_indices[-1] != num_steps - 1:
-        frame_indices = np.append(frame_indices, num_steps - 1)
+    frame_indices = np.arange(0, n_steps, stride, dtype=int)
+    if frame_indices[-1] != n_steps - 1:
+        frame_indices = np.append(frame_indices, n_steps - 1)
 
-    HOLD_START = FPS * 2   # 2s hold at start
-    HOLD_END = FPS * 3     # 3s hold at end
+    HOLD_START = FPS * 2
+    HOLD_END = FPS * 3
     total_motion = len(frame_indices)
     frames: list[np.ndarray] = []
 
-    # -- Start hold --
-    print("    Start hold (2s)...")
-    mj_data.qpos[:6] = result["q_actual"][0]
-    mj_data.qvel[:6] = 0.0
-    mujoco.mj_forward(mj_model, mj_data)
-    cam.azimuth = AZ_START
+    # Start hold — top-down view
+    cam.elevation = -85.0
+    cam.azimuth = 90.0
     renderer.update_scene(mj_data, camera=cam, scene_option=opt)
     _add_markers(renderer.scene, ee_start, ee_goal)
     start_frame = renderer.render().copy()
     frames.extend([start_frame] * HOLD_START)
 
-    # -- Motion --
-    print("    Motion sequence...")
+    # Motion frames — transition from top-down to orbit
     for frame_i, idx in enumerate(frame_indices):
-        mj_data.qpos[:6] = result["q_actual"][idx]
-        mj_data.qvel[:6] = 0.0
+        mj_data.qpos[:NUM_JOINTS] = q_log[idx]
+        mj_data.qvel[:] = 0.0
         mujoco.mj_forward(mj_model, mj_data)
 
-        t_frac = frame_i / max(total_motion - 1, 1)
-        cam.azimuth = AZ_START + (AZ_END - AZ_START) * t_frac
+        progress = frame_i / max(total_motion - 1, 1)
+        if progress < 0.45:
+            cam.elevation = -85.0
+            cam.azimuth = 90.0
+        else:
+            blend = min(1.0, (progress - 0.45) / 0.55)
+            eased = 0.5 - 0.5 * np.cos(np.pi * blend)
+            cam.elevation = -85.0 + eased * 49.0  # -> -36
+            cam.azimuth = 90.0 + eased * 38.0     # -> 128
 
         renderer.update_scene(mj_data, camera=cam, scene_option=opt)
 
-        # EE trail (subsample to stay within maxgeom)
-        trail_pts = result["ee_pos"][: idx + 1 : max(1, stride * 2)]
+        trail_pts = ee_log[:idx + 1:max(1, stride * 2)]
         _add_trail_to_scene(renderer.scene, trail_pts)
-
-        # Current EE marker
         _add_sphere_to_scene(
-            renderer.scene, result["ee_pos"][idx], 0.012, (0.9, 0.1, 0.1, 1.0)
+            renderer.scene, ee_log[idx], 0.012, (0.9, 0.1, 0.1, 1.0),
         )
         _add_markers(renderer.scene, ee_start, ee_goal)
 
@@ -221,20 +247,18 @@ def record_video(output_path: Path = VIDEO_PATH) -> Path:
 
         if frame_i % 50 == 0:
             pct = 100.0 * frame_i / total_motion
-            print(f"\r      {pct:5.1f}%  t={result['time'][idx]:.2f}s", end="", flush=True)
+            print(f"\r      {pct:5.1f}%", end="", flush=True)
 
-    print(f"\r      100.0%  t={result['time'][-1]:.2f}s  ({total_motion} frames)")
+    print(f"\r      100.0%  ({total_motion} frames)")
 
-    # -- End hold --
-    print("    End hold (3s)...")
-    mj_data.qpos[:6] = result["q_actual"][-1]
-    mj_data.qvel[:6] = 0.0
+    # End hold
+    mj_data.qpos[:NUM_JOINTS] = q_log[-1]
+    mj_data.qvel[:] = 0.0
     mujoco.mj_forward(mj_model, mj_data)
-    cam.azimuth = AZ_END
+    cam.elevation = -36.0
+    cam.azimuth = 128.0
     renderer.update_scene(mj_data, camera=cam, scene_option=opt)
-    trail_pts = result["ee_pos"][:: max(1, stride * 2)]
-    _add_trail_to_scene(renderer.scene, trail_pts)
-    _add_sphere_to_scene(renderer.scene, result["ee_pos"][-1], 0.012, (0.9, 0.1, 0.1, 1.0))
+    _add_trail_to_scene(renderer.scene, ee_log[::max(1, stride * 2)])
     _add_markers(renderer.scene, ee_start, ee_goal)
     end_frame = renderer.render().copy()
     frames.extend([end_frame] * HOLD_END)
@@ -247,8 +271,7 @@ def record_video(output_path: Path = VIDEO_PATH) -> Path:
 
     print(f"\n  Video saved: {output_path}")
     print(f"  Duration: {len(frames)/FPS:.1f} s")
-    print(f"  Metrics: RMS={rms:.4f} rad, final_err={final_err:.4f} rad")
-    print(f"  Path: {len(raw_path)} raw -> {len(short_path)} short waypoints")
+    print(f"  Waypoints: {len(SLALOM_WAYPOINTS)}, path: {len(full_path)} wps")
     print("\n" + "=" * 72)
     print("Lab 4 Validation — COMPLETE")
     print("=" * 72)

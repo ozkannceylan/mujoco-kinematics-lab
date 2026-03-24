@@ -10,12 +10,21 @@
 - [x] Step R7: Update README and task docs to the signed-off final state
 
 ## Video Production
-- [x] Step V1: Shared `tools/video_producer.py` three-phase pipeline (title card → metrics → simulation → end card)
-- [x] Step V2: Slalom demo with 8-waypoint RRT* planner, metrics, and video
-- [x] Step V3: Consolidated all output into `media/` (removed `results/` and `scripts/`)
+- [x] Step V1: Shared `tools/video_producer.py` three-phase pipeline
+- [x] Step V2: Slalom demo with multi-waypoint RRT* planner, metrics, and video
+- [x] Step V3: Consolidated all output into `media/`
+
+## Slalom Redesign (2026-03-24)
+- [x] Step S1: Replace obstacles with 4 staggered tabletop boxes (10x10x20 cm)
+- [x] Step S2: Add 9-waypoint slalom path at z=0.56 with gap-midpoints
+- [x] Step S3: Rewrite capstone_demo.py as multi-segment RRT* weaving demo
+- [x] Step S4: Rewrite record_lab4_demo.py and record_lab4_validation.py for slalom
+- [x] Step S5: Delete slalom_demo.py and generate_lab4_demo.py (absorbed into capstone)
+- [x] Step S6: Update tests — all 44 pass with new obstacle layout
+- [x] Step S7: Update architecture and task docs
 
 ## Current Focus
-> Lab 4 complete. All phases done. Motion planning validated and ready for downstream labs.
+> Lab 4 complete. Slalom capstone validated — arm weaves through 4 obstacles.
 
 ## Blockers
 > None.

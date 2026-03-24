@@ -79,7 +79,7 @@ class TestCollisionFree:
         assert cc.is_collision_free(q_up)
 
     def test_known_colliding_config(self, cc: CollisionChecker) -> None:
-        """Config that puts forearm through obstacle 2."""
+        """Config that puts forearm through box_2."""
         q_coll = np.array([0.84, -2.0, 2.0, 2.13, -0.79, 4.18])
         assert not cc.is_collision_free(q_coll)
 

@@ -29,7 +29,7 @@
 ### 2026-03-17 — The recorded validation scene needed a blocked direct path
 **Symptom:** The standard capstone start/goal pair produced a direct collision-free line after shortcutting, which is valid but weak as a sign-off artifact.
 **Root cause:** The default comparison scene is good for planner benchmarking but not strict enough to prove obstacle-aware planning in video form.
-**Fix:** Added a dedicated blocked-path validation scene (`CAPSTONE_OBSTACLES`) for the recorded artifact.
+**Fix:** Redesigned the capstone as a multi-segment slalom through staggered tabletop boxes.
 **Takeaway:** Stable demos and strict validation scenes do not always need to be the same scenario.
 
 ### 2026-03-17 — The tabletop validation case needed a new goal and smoother timing

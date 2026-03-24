@@ -1,27 +1,29 @@
 # Lab 4: Motion Planning & Collision Avoidance — Architecture
 
-Completion date: 2026-03-17
+Updated: 2026-03-24
 
 ## Architecture Status
 
-The canonical Lab 4 architecture is now implemented.
+The canonical Lab 4 architecture is now implemented with a slalom obstacle-avoidance capstone.
 
 - MuJoCo executes the Menagerie UR5e with mounted Robotiq 2F-85
 - Collision truth comes from that same executed MuJoCo geometry
-- Pinocchio is retained for FK and gravity terms, not as the primary collision truth source
+- Pinocchio is retained for FK, IK, and gravity terms
+- Capstone demonstrates multi-segment RRT* weaving through tabletop obstacles
 
 ## Module Map
 
 ```
 lab-4-motion-planning/
 ├── src/
-│   ├── lab4_common.py             # Canonical stack loading, obstacle specs, actuator helpers
+│   ├── lab4_common.py             # Constants, obstacles, waypoints, IK seed bank, helpers
 │   ├── collision_checker.py       # MuJoCo-geometry collision checking
 │   ├── rrt_planner.py             # RRT and RRT* planner
 │   ├── trajectory_smoother.py     # Shortcutting + time parameterization
 │   ├── trajectory_executor.py     # PD + gravity execution on the real stack
-│   ├── capstone_demo.py           # Stable comparison demo
-│   └── record_lab4_validation.py  # Blocked-path validation video
+│   ├── capstone_demo.py           # Slalom obstacle-weaving demo
+│   ├── record_lab4_demo.py        # Full demo video (metrics + simulation)
+│   └── record_lab4_validation.py  # Native MuJoCo validation video
 ├── models/
 ├── tests/
 ├── docs/
@@ -33,36 +35,27 @@ lab-4-motion-planning/
 ## Data Flow
 
 ```
-Q_START, Q_GOAL
+SLALOM_WAYPOINTS (9 Cartesian targets)
         │
         ▼
-collision_checker.py
+solve_ik_xy (Lab 3) + IK seed bank
         │
-        ├─ uses canonical MuJoCo robot + obstacles
-        ├─ is_collision_free(q)
-        ├─ is_path_free(q1, q2)
-        └─ compute_min_distance(q)
+        └─ 9 collision-free joint-space configs
         │
         ▼
-rrt_planner.py
+per-segment RRT* (bounded sampling)
         │
-        └─ collision-free joint-space path
-        │
-        ▼
-trajectory_smoother.py
-        │
-        ├─ shortcutting
-        └─ timed trajectory
+        └─ concatenated collision-free path
         │
         ▼
-trajectory_executor.py
+shortcut_path + densify_path + parameterize_topp_ra
         │
-        ├─ q, qd from MuJoCo
-        ├─ g(q) from Pinocchio
-        └─ torque mapped into Menagerie arm actuators
+        └─ timed trajectory (q, qd, times)
         │
         ▼
-MuJoCo execution + logged telemetry + validation media
+trajectory_executor.py (PD + gravity comp)
+        │
+        └─ MuJoCo execution + telemetry + validation media
 ```
 
 ## Key Interfaces
@@ -70,64 +63,33 @@ MuJoCo execution + logged telemetry + validation media
 ### `lab4_common.py`
 
 ```python
-def load_mujoco_model(...): ...
-def load_pinocchio_model(...): ...
-def apply_arm_torques(...): ...
-def get_ee_pos(...): ...
-def get_mj_ee_pos(...): ...
+OBSTACLES: tuple[ObstacleSpec, ...]     # 4 staggered boxes
+SLALOM_WAYPOINTS: tuple[np.ndarray, ...]  # 9 EE targets at z=0.56
+SLALOM_LABELS: tuple[str, ...]
+build_ik_seed_bank() -> list[np.ndarray]  # 23-seed IK bank
+densify_path(path, max_step) -> list[np.ndarray]
+load_mujoco_model(...) -> (model, data)
+load_pinocchio_model(...) -> (model, data, ee_fid)
+apply_arm_torques(...) -> None
 ```
 
-Responsibilities:
+### `capstone_demo.py`
 
-- load the canonical UR5e + Robotiq scene with configured obstacles
-- expose stable obstacle specs and actuator helpers
-- keep FK utilities aligned with the executed stack
+```python
+ClearanceAwareChecker(base, min_clearance)  # Margin-enforcing wrapper
+solve_waypoints(cc) -> (configs, clearances)  # IK for all waypoints
+plan_segments(checker, configs) -> (path, time, nodes)  # Per-segment RRT*
+run_capstone() -> dict  # Full pipeline: IK → plan → execute → plots
+```
 
 ### `collision_checker.py`
 
-Responsibilities:
-
-- evaluate collisions on the executed MuJoCo geometry
-- preserve the Lab 4 collision API used by planner/tests
-- ignore internal Robotiq linkage proximity that is not meaningful planning collision
-
-### `rrt_planner.py`
-
-Responsibilities:
-
-- plan collision-free C-space paths
-- support both RRT and RRT*
-- visualize planner output using the canonical obstacle layout
-
-### `trajectory_smoother.py`
-
-Responsibilities:
-
-- shorten paths with shortcutting
-- keep the `parameterize_topp_ra(...)` API stable
-- use TOPP-RA when available, else a conservative quintic fallback
-
-### `trajectory_executor.py`
-
-Responsibilities:
-
-- execute trajectories on the canonical MuJoCo stack
-- add gravity compensation from Pinocchio
-- map desired torques through the Menagerie actuator model
-
-### `record_lab4_validation.py`
-
-Responsibilities:
-
-- run the blocked-path validation scenario
-- save the sign-off video to `media/`
-- overlay the MuJoCo scene with execution/path metrics
+- `is_collision_free(q)`, `is_path_free(q1, q2)`, `compute_min_distance(q)`
+- `compute_min_obstacle_distance(q)` — used by clearance-aware planning
 
 ## Video Production
 
 All demo videos use the shared `tools/video_producer.py` three-phase pipeline.
-Lab 4 demo scripts live in `src/` alongside the other modules. All output goes to `media/`.
 
-- `src/generate_lab4_demo.py` — slalom demo generator using the shared video producer
-- `src/slalom_demo.py` — slalom planning pipeline, metrics, camera schedule
-- `src/record_lab4_validation.py` — blocked-path validation video recorder
+- `src/record_lab4_demo.py` — full demo video (metrics + simulation) via video_producer
+- `src/record_lab4_validation.py` — native MuJoCo validation video (slalom execution)
