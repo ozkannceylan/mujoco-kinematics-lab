@@ -22,6 +22,17 @@ The goal of Lab 1 is to keep the math visible while still building a complete ma
 
 ---
 
+## Skills Demonstrated
+
+- **Forward kinematics**: closed-form analytic 2-link FK with workspace analysis.
+- **Jacobian & IK**: 2x2 analytic Jacobian; pseudo-inverse and damped least-squares IK solvers.
+- **Trajectory generation**: cubic and quintic polynomial joint-space trajectories.
+- **PD control**: joint PD augmented with MuJoCo gravity compensation (`qfrc_bias`).
+- **Computed torque control**: inverse-dynamics feedforward driving the square-drawing demo.
+- **Precision tracking**: 0.008 mm RMS Cartesian error under 0.076 Nm peak torque.
+
+---
+
 ## Modules
 
 ### A — Foundations

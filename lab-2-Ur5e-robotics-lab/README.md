@@ -21,6 +21,18 @@ A self-contained 6-DOF robotics lab built around the **Universal Robots UR5e**. 
 
 ---
 
+## Skills Demonstrated
+
+- **FK cross-validation**: DH, Pinocchio, and MuJoCo agree to 0.000 mm.
+- **Jacobian analysis**: geometric, Pinocchio, and numerical Jacobians with singularity-index sweeps.
+- **Numerical IK**: pseudo-inverse and adaptive damped least-squares with sub-0.1 mm waypoint error.
+- **Dynamics**: Pinocchio RNEA, ABA, and CRBA cross-validated against MuJoCo `qfrc_bias`.
+- **Trajectory generation**: multi-segment cubic, quintic, trapezoidal, and minimum-jerk profiles.
+- **Control suite**: PD+g, computed torque, task-space impedance, and operational space control (OSC).
+- **Integration demos**: pick-and-place pipeline and 3D cube drawing at 0.088 mm RMS.
+
+---
+
 ## Architecture
 
 ```text
