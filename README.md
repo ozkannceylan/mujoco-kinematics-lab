@@ -18,13 +18,15 @@ An open curriculum for rebuilding robotics fundamentals in **MuJoCo**, with **Pi
 | 4   | Motion planning & collision avoidance | Complete |
 | 5   | Grasping & manipulation | Complete\* |
 | 6   | Dual-arm coordination | Complete |
-| 7   | Locomotion fundamentals | Planned |
+| 7   | Locomotion fundamentals | Complete\*\* |
 | 8   | Whole-body loco-manipulation | Planned |
 | 9   | VLA integration | Planned |
 
 Only labs marked **Complete** have published writeups and metrics in this README. Planned labs may have in-progress code on disk but are not yet portfolio-ready.
 
 \* **Lab 5** ships its core pick-and-place pipeline complete and tested; a separate *pro demo hardening* track (record_pro_demo.py + RRT\* integration) is still open and is called out in the Lab 5 README.
+
+\*\* **Lab 7** is signed off at M3d scope: static balance, push recovery, FK/IK validation, and quasi-static weight shifting all pass their gates. Dynamic ZMP walking (M4) was identified as structurally infeasible with the Menagerie G1's position actuators — the lab's M5 documentation and blog post explain the diagnostic work in full rather than papering over the limit.
 
 ---
 
@@ -149,6 +151,27 @@ Two UR5e arms 1 m apart grasp a 30×15×15 cm box from opposite sides, lift it, 
 
 ---
 
+### Lab 7: Locomotion Fundamentals
+
+Lab 7 moves from manipulators to a humanoid: the **Unitree G1** (29 DOF, 33.34 kg) in MuJoCo with Pinocchio for floating-base kinematics. Lab 7 takes the standing / IK / quasi-static balance stack as far as the Menagerie G1's position actuators allow, then **honestly documents the structural limit** that prevents classical ZMP walking from working with position-PD control — rather than papering over it.
+
+**Final demo**: standing under 5 N push, 5 cm lateral weight shift with stacked-Jacobian whole-body IK pinning the feet (foot drift < 1.4 mm), plus a LIPM/ZMP plot overlay.
+
+![Lab 7 — Weight Shift](lab-7-locomotion/media/m3d_shifted.png)
+
+| Metric | Value |
+|---|---|
+| Pelvis deviation under 5 N push | 1.6 mm |
+| CoM Pinocchio↔MuJoCo cross-validation | 0.000 mm |
+| Jacobian column validation (12 leg joints) | 0/36 failures |
+| Whole-body IK foot slip on 5 cm CoM shift | 0.51 mm |
+| Quasi-static weight shift / drift | 53.5 mm / 1.36 mm |
+| Dynamic ZMP walking | structurally blocked (position actuators) |
+
+[Go to Lab 7](lab-7-locomotion/)
+
+---
+
 ## Repository Structure
 
 ```
@@ -208,6 +231,15 @@ mujoco-robotics-lab/
 │   ├── media/                    #   Per-milestone videos + trajectory plots
 │   └── README.md                 #   Lab overview
 │
+├── lab-7-locomotion/             # Lab 7: Locomotion Fundamentals (G1 humanoid)
+│   ├── src/                      #   Milestones M0-M5 + standing / whole-body IK / LIPM
+│   ├── models/                   #   Lab-side overlays (G1 model from upstream Menagerie)
+│   ├── docs/                     #   ARCHITECTURE.md + CODE_WALKTHROUGH.md + joint map
+│   ├── docs-turkish/             #   ARCHITECTURE_TR.md
+│   ├── blog/                     #   "Why Making a Humanoid Walk is Harder Than It Looks"
+│   ├── media/                    #   Per-milestone videos + plots + validation .txt
+│   └── README.md                 #   Lab overview
+│
 ├── CLAUDE.md                     # Project instructions for AI assistant
 └── README.md                     # This file
 ```
@@ -244,6 +276,9 @@ python3 lab-5-grasping-manipulation/src/pick_place_demo.py
 
 # Lab 6: dual-arm cooperative carry capstone
 python3 lab-6-dual-arm/src/m5_capstone_demo.py
+
+# Lab 7: G1 standing + 5 cm weight shift + LIPM/ZMP overlay
+python3 lab-7-locomotion/src/m5_capstone_demo.py
 ```
 
 ---

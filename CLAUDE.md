@@ -246,11 +246,10 @@ Published (portfolio-ready, documented in main README):
 - [x] Lab 4: Motion Planning & Collision Avoidance (from-scratch RRT/RRT*, real-geometry collision truth, shortcutting + TOPP-RA, slalom capstone)
 - [x] Lab 5: Grasping & Manipulation (custom MJCF jaw gripper, DLS IK, 11-state pick-and-place, Lab 3+4 integration). Core pipeline complete; record_pro_demo.py hardening (Phase 5.1/5.2/5.4) is the only remaining track.
 - [x] Lab 6: Dual-Arm Coordination (two UR5e arms, Pinocchio dual-arm DLS IK, weld-constraint cooperative carry, milestone-gated verification M0-M5)
+- [x] Lab 7: Locomotion Fundamentals (Unitree G1, floating-base Pinocchio, stacked-Jacobian whole-body IK, standing + weight shift on M3d scope; M4 ZMP walking deferred as structural limitation of position actuators)
 
 In progress (folders suffixed `.planned/`, real code on disk but not yet portfolio-ready):
-- [ ] Lab 5: Grasping & Manipulation (custom gripper, DLS IK, pick-and-place state machine)
-- [ ] Lab 6: Dual-Arm Coordination
-- [ ] Lab 7: Locomotion Fundamentals
+- (none — all in-progress labs have been promoted)
 
 Future (no folder yet — planned in main README roadmap only):
 - [ ] Lab 8: Whole-Body Loco-Manipulation

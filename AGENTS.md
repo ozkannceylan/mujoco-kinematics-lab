@@ -182,7 +182,7 @@ mujoco-robotics-lab/
 ├── lab-4-motion-planning/                    # ✅ Published
 ├── lab-5-grasping-manipulation/              # ✅ Published (Phase 5 pro-demo hardening pending)
 ├── lab-6-dual-arm/                           # ✅ Published
-├── lab-7-locomotion.planned/                 # 🚧 WIP
+├── lab-7-locomotion/                         # ✅ Published (M4 ZMP walking deferred)
 │   # Labs 8 (whole-body) and 9 (VLA) are roadmap-only — no folder yet.
 │
 │   # Each lab follows this layout:
