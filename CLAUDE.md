@@ -36,7 +36,7 @@ pip install mujoco numpy pinocchio scipy imageio[ffmpeg] matplotlib meshcat
 pytest lab-3-dynamics-force-control/tests/
 
 # Single test file
-pytest lab-4-motion-planning.planned/tests/test_collision.py
+pytest lab-4-motion-planning/tests/test_collision.py
 
 # Single test method
 pytest lab-5-grasping-manipulation.planned/tests/test_gripper.py::TestGripperContact::test_contact_detection -v
@@ -55,7 +55,7 @@ Each lab has numbered scripts (a1, a2, b1, c1, etc.) that run in order:
 python3 lab-1-2link-arm/src/c1_draw_square.py        # Lab 1 capstone
 python3 lab-2-Ur5e-robotics-lab/src/c3_draw_cube.py   # Lab 2 capstone
 python3 lab-3-dynamics-force-control/src/c1_force_control.py
-python3 lab-4-motion-planning.planned/src/capstone_demo.py
+python3 lab-4-motion-planning/src/capstone_demo.py
 python3 lab-5-grasping-manipulation.planned/src/record_pro_demo.py
 ```
 
@@ -243,9 +243,9 @@ Published (portfolio-ready, documented in main README):
 - [x] Lab 1: 2-Link Planar Arm (square drawing demo)
 - [x] Lab 2: UR5e 6-DOF Arm (cube drawing demo)
 - [x] Lab 3: Dynamics & Force Control (gravity comp, Cartesian impedance, hybrid force control on a real table-contact scene)
+- [x] Lab 4: Motion Planning & Collision Avoidance (from-scratch RRT/RRT*, real-geometry collision truth, shortcutting + TOPP-RA, slalom capstone)
 
 In progress (folders suffixed `.planned/`, real code on disk but not yet portfolio-ready):
-- [ ] Lab 4: Motion Planning & Collision Avoidance (RRT*, TOPP-RA, capstone demo)
 - [ ] Lab 5: Grasping & Manipulation (custom gripper, DLS IK, pick-and-place state machine)
 - [ ] Lab 6: Dual-Arm Coordination
 - [ ] Lab 7: Locomotion Fundamentals

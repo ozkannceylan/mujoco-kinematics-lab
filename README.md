@@ -15,7 +15,7 @@ An open curriculum for rebuilding robotics fundamentals in **MuJoCo**, with **Pi
 | 1   | 2-link planar arm | Complete |
 | 2   | UR5e 6-DOF arm | Complete |
 | 3   | Dynamics & force control | Complete |
-| 4   | Motion planning & collision avoidance | Planned |
+| 4   | Motion planning & collision avoidance | Complete |
 | 5   | Grasping & manipulation | Planned |
 | 6   | Dual-arm coordination | Planned |
 | 7   | Locomotion fundamentals | Planned |
@@ -85,6 +85,26 @@ The first lab where the robot actually pushes on something. Lab 3 leaves pure ki
 
 ---
 
+### Lab 4: Motion Planning & Collision Avoidance
+
+Lab 4 introduces obstacles. RRT and RRT\* are implemented from scratch in 6-D joint space, with collision truth coming from the *same* MuJoCo geometry that execution uses — planner and controller agree on what "in collision" means. Path shortcutting + time parameterization feed the trajectory into Lab 3's PD + gravity-compensation controller.
+
+**Final demo**: Multi-segment RRT\* path weaves the UR5e end-effector through **4 staggered tabletop obstacles**, then a blocked-path validation scene shortcuts a 35-waypoint plan down to 3 and executes it at 0.0037 rad RMS.
+
+![Lab 4 — Capstone EE Trajectory](lab-4-motion-planning/media/capstone_ee_trajectory.png)
+
+| Metric | Value |
+|---|---|
+| Standard capstone RMS tracking error | 0.0125 rad |
+| Blocked-path scene RMS tracking error | 0.0037 rad |
+| Blocked-path raw → shortcut waypoints | 35 → 3 |
+| Blocked-path raw → shortcut cost | 9.895 → 7.873 |
+| Tests shipped with the lab | 44 passed, 1 skipped |
+
+[Go to Lab 4](lab-4-motion-planning/)
+
+---
+
 ## Repository Structure
 
 ```
@@ -116,6 +136,15 @@ mujoco-robotics-lab/
 │   ├── tests/                    #   Pytest suite (34 tests)
 │   └── README.md                 #   Lab overview
 │
+├── lab-4-motion-planning/        # Lab 4: Motion Planning & Collision Avoidance
+│   ├── src/                      #   Collision / RRT* / smoother / executor / capstone
+│   ├── models/                   #   UR5e collision URDF + obstacle MJCF scenes
+│   ├── docs/                     #   English documentation
+│   ├── docs-turkish/             #   Turkish documentation
+│   ├── media/                    #   Plots, slalom demo, validation video
+│   ├── tests/                    #   Pytest suite (44 passed, 1 skipped)
+│   └── README.md                 #   Lab overview
+│
 ├── CLAUDE.md                     # Project instructions for AI assistant
 └── README.md                     # This file
 ```
@@ -143,6 +172,9 @@ python3 lab-2-Ur5e-robotics-lab/src/c3_draw_cube.py
 
 # Lab 3: constant-force line trace on a table
 python3 lab-3-dynamics-force-control/src/c2_line_trace.py
+
+# Lab 4: RRT* slalom through 4 tabletop obstacles
+python3 lab-4-motion-planning/src/capstone_demo.py
 ```
 
 ---

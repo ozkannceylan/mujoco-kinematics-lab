@@ -60,7 +60,7 @@ from grasp_planner import GraspConfigs
 
 # Cross-lab imports
 add_lab_src_to_path("lab-3-dynamics-force-control")
-add_lab_src_to_path("lab-4-motion-planning.planned")
+add_lab_src_to_path("lab-4-motion-planning")
 
 from b1_impedance_controller import ImpedanceGains, compute_impedance_torque  # noqa: E402
 from collision_checker import CollisionChecker  # noqa: E402
