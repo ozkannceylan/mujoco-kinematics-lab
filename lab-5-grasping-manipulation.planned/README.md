@@ -1,6 +1,8 @@
 # Lab 5: Grasping & Manipulation
 
-A complete pick-and-place pipeline for the UR5e + custom parallel-jaw gripper in MuJoCo. The arm picks a 40mm cube from table position A and places it at position B using RRT* motion planning, DLS IK, and joint-space impedance control with gravity compensation.
+> **Status: in progress.** Code and documentation in this folder are work-in-progress and not yet portfolio-ready. See the [main README](../README.md) for the published labs.
+
+A pick-and-place pipeline for the UR5e + custom parallel-jaw gripper in MuJoCo. The arm picks a 40mm cube from table position A and places it at position B using RRT* motion planning, DLS IK, and joint-space impedance control with gravity compensation.
 
 ---
 

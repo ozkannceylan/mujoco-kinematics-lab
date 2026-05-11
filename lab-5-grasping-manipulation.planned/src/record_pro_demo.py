@@ -32,8 +32,8 @@ MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_VIDEO = MEDIA_DIR / "pick_place_pro.mp4"
 
 # Lab 4 collision-free planning
-_LAB4_SRC = REPO_ROOT / "lab-4-motion-planning" / "src"
-_LAB4_URDF = REPO_ROOT / "lab-4-motion-planning" / "models" / "ur5e_collision.urdf"
+_LAB4_SRC = REPO_ROOT / "lab-4-motion-planning.planned" / "src"
+_LAB4_URDF = REPO_ROOT / "lab-4-motion-planning.planned" / "models" / "ur5e_collision.urdf"
 if str(_LAB4_SRC) not in sys.path:
     sys.path.insert(0, str(_LAB4_SRC))
 

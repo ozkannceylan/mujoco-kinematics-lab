@@ -1,5 +1,7 @@
 # Lab 7: Locomotion Fundamentals
 
+> **Status: in progress.** Code and documentation in this folder are work-in-progress and not yet portfolio-ready. See the [main README](../README.md) for the published labs.
+
 Bipedal locomotion on the **Unitree G1 humanoid** (29 DOF, 33.34 kg) using MuJoCo simulation and Pinocchio analytical computation.
 
 ## What This Lab Covers

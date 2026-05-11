@@ -1,6 +1,6 @@
 # Lab 3: Dynamics & Force Control
 
-Status: complete and signed off on 2026-03-17.
+> **Status: in progress.** Code and documentation in this folder are work-in-progress and not yet portfolio-ready. See the [main README](../README.md) for the published labs.
 
 Lab 3 now runs on the canonical project stack:
 

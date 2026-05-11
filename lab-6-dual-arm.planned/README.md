@@ -1,5 +1,7 @@
 # Lab 6: Dual-Arm Coordination
 
+> **Status: in progress.** Code and documentation in this folder are work-in-progress and not yet portfolio-ready. See the [main README](../README.md) for the published labs.
+
 Cooperative bimanual manipulation with two UR5e arms in MuJoCo. The arms grasp a box from opposite sides, lift it, carry it laterally, and place it back on the table.
 
 ## Overview
